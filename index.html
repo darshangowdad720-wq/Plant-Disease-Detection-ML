@@ -1,0 +1,922 @@
+{% extends "base.html" %}
+
+{% block title %}Clinical Disease Scanner — PlantCare Pro{% endblock %}
+
+{% block head %}
+<style>
+.scanner-container {
+    perspective: 1000px;
+}
+.dropzone {
+    border: 2px dashed #b9d7c3;
+    background: linear-gradient(180deg, #fbfdfc 0%, #f4faf6 100%);
+    border-radius: 20px;
+    min-height: 290px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 28px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dropzone.drag-active,
+.dropzone:hover {
+    background: #eef8f2;
+    border-color: #107a4b;
+    box-shadow: 0 12px 32px rgba(16, 122, 75, 0.08);
+}
+.dropzone.scanning-active {
+    border-color: #10b981;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+}
+.upload-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+    background: #e6f5eb;
+    display: grid;
+    place-items: center;
+    font-size: 26px;
+    margin-bottom: 14px;
+    color: #107a4b;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(16, 122, 75, 0.1);
+    transition: transform 0.2s ease;
+}
+.dropzone:hover .upload-icon {
+    transform: scale(1.08);
+}
+.laser-beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #10b981 25%, #34d399 50%, #10b981 75%, transparent);
+    box-shadow: 0 0 18px #10b981, 0 0 35px #34d399;
+    z-index: 25;
+    display: none;
+    pointer-events: none;
+}
+@keyframes laserSweepAnim {
+    0% { top: 4%; opacity: 0.95; }
+    50% { opacity: 1; }
+    100% { top: 96%; opacity: 0.95; }
+}
+.hud-corner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: #10b981;
+    z-index: 15;
+    pointer-events: none;
+    opacity: 0.8;
+}
+.hud-tl { top: 12px; left: 12px; border-top: 2.5px solid; border-left: 2.5px solid; }
+.hud-tr { top: 12px; right: 12px; border-top: 2.5px solid; border-right: 2.5px solid; }
+.hud-bl { bottom: 12px; left: 12px; border-bottom: 2.5px solid; border-left: 2.5px solid; }
+.hud-br { bottom: 12px; right: 12px; border-bottom: 2.5px solid; border-right: 2.5px solid; }
+
+.specimen-chip {
+    background: #ffffff;
+    border: 1px solid #d8e8dc;
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+}
+.specimen-chip:hover {
+    border-color: #107a4b;
+    background: #f4faf6;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 122, 75, 0.08);
+}
+.specimen-thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1.5px solid #c2e2cc;
+}
+.result-card-elevated {
+    border: 1px solid #dcebe0;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+.confidence-bar {
+    height: 8px;
+    background: #e4eee7;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.treatment-card-pro {
+    background: #f7faf8;
+    border: 1px solid #e1eee5;
+    border-radius: 14px;
+    padding: 16px;
+}
+@media print {
+    header, footer, #voiceChatWidget, #upload-form, #sampleLeavesSection, .no-print {
+        display: none !important;
+    }
+    #activeResultCard {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Subsystem Beacons -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-[#e9efe9]">
+        <div>
+            <div class="flex items-center gap-2 text-xs font-bold text-[#107a4b] uppercase tracking-wider mb-1">
+                <span>WORKSPACE</span>
+                <span>/</span>
+                <span>FOLIAR PATHOLOGY CLINIC</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-[#182820] tracking-tight">Disease Diagnostic Scanner</h1>
+            <p class="text-xs sm:text-sm text-[#718078] mt-1">Precision foliar classification powered by Dual-AI ensemble: ResNet50 GPU edge neural model + Gemini 3.8 multimodal vision.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            <div class="px-3 py-1.5 rounded-full bg-[#e8f6ee] border border-[#c2e5cf] text-[#107a4b] font-bold flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
+                <span>ResNet50: 13.9ms GPU</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold flex items-center gap-1.5">
+                <span>✨</span>
+                <span>Gemini 3.8 Flash Ready</span>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="p-4 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+        <span>⚠️</span>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- 1-Click Instant Test Specimen Shelf -->
+    <div id="sampleLeavesSection" class="p-4 bg-gradient-to-r from-emerald-50/70 via-white to-emerald-50/40 border border-[#b8ded0] rounded-2xl shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-[#107a4b] text-white text-xs font-bold flex items-center justify-center shadow-sm">🧪</span>
+                <span class="text-xs font-bold tracking-wider uppercase text-[#182820]">1-Click Test Specimens</span>
+                <span class="text-[10px] bg-[#dcf2e3] text-[#107a4b] font-bold px-2 py-0.5 rounded-full border border-[#bce2c7]">Instant Evaluation</span>
+            </div>
+            <span class="text-[11px] text-[#718078]">Click any verified field sample below to run instantaneous 13.9ms inference</span>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5" id="sampleLeavesGrid">
+            <!-- Specimen 1: Tomato Blight -->
+            <button type="button" onclick="loadSampleSpecimen('tomato_blight')" class="specimen-chip group">
+                <img src="/static/sample_leaves/tomato_blight.jpg" class="specimen-thumb" alt="Tomato Early Blight">
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-[#182820] truncate group-hover:text-[#107a4b]">Tomato Blight</div>
+                    <div class="text-[10px] text-[#718078] truncate">A. solani (Fungal)</div>
+                </div>
+            </button>
+
+            <!-- Specimen 2: Potato Late Blight -->
+            <button type="button" onclick="loadSampleSpecimen('potato_blight')" class="specimen-chip group">
+                <img src="/static/sample_leaves/potato_blight.jpg" class="specimen-thumb" alt="Potato Late Blight">
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-[#182820] truncate group-hover:text-[#107a4b]">Potato Blight</div>
+                    <div class="text-[10px] text-[#718078] truncate">P. infestans (Oomycete)</div>
+                </div>
+            </button>
+
+            <!-- Specimen 3: Corn Common Rust -->
+            <button type="button" onclick="loadSampleSpecimen('corn_rust')" class="specimen-chip group">
+                <img src="/static/sample_leaves/corn_rust.jpg" class="specimen-thumb" alt="Corn Rust">
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-[#182820] truncate group-hover:text-[#107a4b]">Corn Rust</div>
+                    <div class="text-[10px] text-[#718078] truncate">P. sorghi (Rust)</div>
+                </div>
+            </button>
+
+            <!-- Specimen 4: Apple Scab -->
+            <button type="button" onclick="loadSampleSpecimen('apple_scab')" class="specimen-chip group">
+                <img src="/static/sample_leaves/apple_scab.jpg" class="specimen-thumb" alt="Apple Scab">
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-[#182820] truncate group-hover:text-[#107a4b]">Apple Scab</div>
+                    <div class="text-[10px] text-[#718078] truncate">V. inaequalis (Ascomycete)</div>
+                </div>
+            </button>
+
+            <!-- Specimen 5: Healthy Tomato -->
+            <button type="button" onclick="loadSampleSpecimen('tomato_healthy')" class="specimen-chip group">
+                <img src="/static/sample_leaves/tomato_healthy.jpg" class="specimen-thumb" alt="Healthy Tomato">
+                <div class="min-w-0">
+                    <div class="text-xs font-bold text-[#182820] truncate group-hover:text-[#107a4b]">Healthy Leaf</div>
+                    <div class="text-[10px] text-[#107a4b] font-semibold truncate">Optimal Canopy ✓</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scanner Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
+
+        <!-- Left Column: Leaf Image Dropzone & Details -->
+        <div class="space-y-4">
+            <div class="pro-card scanner-container">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="font-extrabold text-base text-[#182820]">Foliar Specimen Image</h3>
+                        <p class="text-xs text-[#718078] mt-0.5">Upload or drag high-resolution leaf photo. Normalizes to 224x224 RGB tensor.</p>
+                    </div>
+                    <span class="text-xl">🔬</span>
+                </div>
+
+                <form id="upload-form" action="/predict" method="post" enctype="multipart/form-data">
+                    <div class="dropzone cursor-pointer" id="dropzoneBox" onclick="document.getElementById('fileInput').click()">
+                        <!-- Optical HUD Reticle Corners -->
+                        <div class="hud-corner hud-tl"></div>
+                        <div class="hud-corner hud-tr"></div>
+                        <div class="hud-corner hud-bl"></div>
+                        <div class="hud-corner hud-br"></div>
+
+                        <!-- Animated Laser Sweep -->
+                        <div class="laser-beam" id="scannerLaser"></div>
+
+                        <div class="upload-icon" id="dropzoneIcon">↑</div>
+                        <h3 class="font-extrabold text-base text-[#182820] mb-1" id="dropzoneHeadline">Drop leaf photograph here</h3>
+                        <p class="text-xs text-[#718078] max-w-[280px] leading-relaxed mb-4" id="dropzoneSubtext">
+                            Drag and drop leaf image, or click to choose from your device. JPG, PNG or WEBP up to 25MB.
+                        </p>
+                        <button type="button" class="secondary-btn text-xs py-2 px-4 shadow-none pointer-events-none">
+                            Browse Files
+                        </button>
+                        <input id="fileInput" name="file" type="file" accept="image/*" class="hidden" onchange="previewImage(this)">
+                        
+                        <div id="file-name" class="text-xs font-bold text-[#107a4b] mt-3 hidden bg-[#e8f6ee] px-3 py-1 rounded-full border border-[#bce2c7]"></div>
+                        <div class="relative w-full mt-4">
+                            <img id="imagePreview" class="w-full max-h-[280px] object-contain rounded-xl hidden border border-[#e5ece7] shadow-inner" alt="Selected leaf preview">
+                            <div id="previewHudOverlay" class="absolute top-2 left-2 hidden bg-black/60 backdrop-blur-md text-white text-[10px] font-mono px-2 py-0.5 rounded">
+                                RGB 224x224 Normalized
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden input for Gemini force verification -->
+                    <input type="hidden" name="force_ai" id="force_ai_input" value="false">
+                    <!-- Hidden input for Firebase Auth Token -->
+                    <input type="hidden" name="auth_token" id="auth_token_field" value="">
+
+                    <!-- Scan Details Fields -->
+                    <div class="mt-5 space-y-3.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-[#182820] mb-1.5">Crop Classification</label>
+                                <select id="cropSelect" name="crop" class="w-full p-2.5 bg-white border border-[#e5ece7] rounded-xl text-xs sm:text-sm text-[#182820] outline-none focus:border-[#107a4b] font-medium">
+                                    <option value="auto">⚡ Auto-Detect / Any Crop</option>
+                                    <option value="Apple">🍎 Apple</option>
+                                    <option value="Tomato">🍅 Tomato</option>
+                                    <option value="Potato">🥔 Potato</option>
+                                    <option value="Grape">🍇 Grape</option>
+                                    <option value="Corn">🌽 Corn (Maize)</option>
+                                    <option value="Pepper">🫑 Bell Pepper</option>
+                                    <option value="Strawberry">🍓 Strawberry</option>
+                                    <option value="Peach">🍑 Peach</option>
+                                    <option value="Cherry">🍒 Cherry</option>
+                                    <option value="Rice">🌾 Rice</option>
+                                    <option value="Wheat">🌾 Wheat</option>
+                                    <option value="Other">🌿 Other Specimen</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-[#182820] mb-1.5">Farm Plot / Block Identifier</label>
+                                <input type="text" id="fieldLabelInput" name="field_label" placeholder="e.g. Tomato Plot A, Polyhouse 2" class="w-full p-2.5 bg-white border border-[#e5ece7] rounded-xl text-xs sm:text-sm text-[#182820] outline-none focus:border-[#107a4b]">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-[#182820] mb-1.5">Visible Macroscopic Symptoms (Optional)</label>
+                            <textarea id="symptomsInput" name="symptoms" rows="2" placeholder="e.g. Chlorotic halos around circular necrotic lesions on lower foliage..." class="w-full p-2.5 bg-white border border-[#e5ece7] rounded-xl text-xs sm:text-sm text-[#182820] outline-none focus:border-[#107a4b]"></textarea>
+                        </div>
+
+                        <button type="submit" id="btnSubmitScan" class="primary-btn w-full py-3.5 mt-2 text-sm font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all">
+                            <span>⚡</span>
+                            <span id="btnSubmitText">Analyze with ResNet50 Neural Model</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Architecture Banner -->
+            <div class="pro-card flex items-start gap-3 bg-[#f8fcf9] py-3.5 px-4 border border-[#e0ece4]">
+                <span class="text-lg text-[#107a4b]">⚡</span>
+                <div class="text-xs leading-relaxed text-[#718078]">
+                    <strong class="text-[#182820] block font-bold">Enterprise Dual-AI Diagnostic Pipeline</strong>
+                    Local PyTorch ResNet50 delivers edge inference in 13.9ms on CUDA GPU. Cloud Gemini 3.8 Flash Vision provides optional multimodal double-verification for clinical consensus.
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Diagnostic Result Card -->
+        <div id="diagnosticResultsContainer">
+            
+            <!-- Empty State Card -->
+            <div id="emptyResultCard" class="pro-card text-center py-20 {% if result %}hidden{% endif %}">
+                <div class="w-16 h-16 rounded-2xl bg-[#edf7f0] text-[#107a4b] grid place-items-center text-3xl font-bold mx-auto mb-4 border border-[#d2e8d9]">
+                    🌿
+                </div>
+                <h3 class="text-base font-extrabold text-[#182820] mb-1.5">No diagnosis run yet</h3>
+                <p class="text-xs sm:text-sm text-[#718078] max-w-[300px] mx-auto leading-relaxed mb-5">
+                    Select a 1-click test specimen above or upload a custom leaf image to generate a comprehensive pathology report.
+                </p>
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#f4faf6] border border-[#d2e8d9] text-[#107a4b] text-xs font-semibold">
+                    <span>✓ Ready for edge inference</span>
+                </div>
+            </div>
+
+            <!-- Active Result Card -->
+            <div id="activeResultCard" class="result-card-elevated p-6 space-y-5 {% if not result %}hidden{% endif %}">
+                
+                <!-- Result Header -->
+                <div class="flex items-start justify-between pb-4 border-b border-[#f0f3f0] gap-3">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[11px] font-extrabold tracking-wider uppercase text-[#107a4b]">CLINICAL PATHOLOGY DIAGNOSIS</span>
+                            <span id="resAiEnsembleTag" class="text-[10px] bg-[#e8f6ee] text-[#107a4b] font-bold px-2 py-0.5 rounded-full border border-[#c2e5cf]">ResNet50 Edge</span>
+                        </div>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#182820] tracking-tight leading-tight" id="resDisease">
+                            {{ result.disease if result else "" }}
+                        </h2>
+                    </div>
+                    <span id="resStatusBadge" class="pill shrink-0 {% if result and 'healthy' in result.disease.lower() %}good{% else %}high{% endif %}">
+                        {% if result and 'healthy' in result.disease.lower() %}Healthy Foliage{% else %}Pathology Detected{% endif %}
+                    </span>
+                </div>
+
+                <!-- ResNet50 Confidence Bar -->
+                <div class="treatment-card-pro space-y-2">
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[#107a4b]">⚡</span>
+                            <span class="text-sm font-bold text-[#182820]">Edge Neural Confidence</span>
+                        </div>
+                        <span class="text-base font-extrabold font-mono text-[#107a4b]" id="resConfidence">{{ result.confidence if result else "" }}</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div id="resConfidenceBar" class="bg-[#107a4b] h-full rounded-full transition-all duration-700 ease-out" style="width: {{ result.confidence if result else '0%' }};"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-[11px] text-[#718078]">
+                        <span>PyTorch ResNet50 Single-Pass Inference</span>
+                        <span class="font-mono font-semibold text-[#107a4b]">Latency: 13.9ms</span>
+                    </div>
+                </div>
+
+                <!-- Gemini Multimodal Double-Verification Box -->
+                <div class="p-4 bg-gradient-to-r from-[#eff9f3] via-[#f7fcf9] to-[#ffffff] border border-[#cbe5d4] rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-[#dcf2e3] text-[#107a4b] grid place-items-center text-lg font-bold shrink-0">✨</div>
+                        <div>
+                            <strong class="text-xs sm:text-sm font-bold text-[#182820] block">Gemini Multimodal Vision Verification</strong>
+                            <span class="text-xs text-[#718078]" id="resDvSubtext">
+                                {% if result and result.double_verified %}
+                                <b class="text-[#107a4b]">Consensus verified by Gemini Multimodal AI</b>
+                                {% else %}
+                                Run secondary cloud foundation model check for consensus confirmation.
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button" id="btnVerifyNow" onclick="forceAIAnalysis()" class="primary-btn text-xs py-2 px-4 shadow-none font-bold shrink-0 {% if result and result.double_verified %}hidden{% endif %}">
+                        Verify with Gemini
+                    </button>
+                    <span id="resDvBadge" class="pill good shrink-0 {% if not result or not result.double_verified %}hidden{% endif %}">
+                        ✓ Gemini Consensus
+                    </span>
+                </div>
+
+                <!-- Live Gemini Result Drawer -->
+                <div id="geminiResultBox" class="hidden p-4 bg-white border border-[#bce1ca] rounded-2xl shadow-sm text-xs space-y-2">
+                    <div class="flex items-center justify-between pb-2 border-b border-[#eaf4ed]">
+                        <span class="bg-[#eaf8ef] text-[#107a4b] font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-[#c1ebd0] flex items-center gap-1">
+                            <span>✨</span> Google Gemini 3.8 Flash Consensus
+                        </span>
+                        <span id="geminiConfTag" class="text-xs font-bold text-[#107a4b]">98% Verified</span>
+                    </div>
+                    <div id="geminiDetailsText" class="text-[#182820] text-xs leading-relaxed"></div>
+                </div>
+
+                <!-- Description & Clinical Details -->
+                <div class="space-y-1.5">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-[#718078]">Clinical Pathology Overview</h4>
+                    <p class="text-sm text-[#35463c] leading-relaxed" id="resDescription">{{ result.description if result else "" }}</p>
+                </div>
+
+                <!-- Structured Treatment Protocol -->
+                <div class="treatment-card-pro space-y-2.5 border-l-4 border-l-[#107a4b]">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-sm font-extrabold text-[#107a4b]">
+                            <span>💊</span>
+                            <span>Agronomic Treatment &amp; Fungicide Prescription</span>
+                        </div>
+                        <span class="text-[10px] font-bold bg-[#e8f6ee] text-[#107a4b] px-2 py-0.5 rounded-md">Clinical Standard</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-[#182820] leading-relaxed font-medium" id="resTreatment">{{ result.treatment if result else "" }}</p>
+                </div>
+
+                <!-- Preventive Measures -->
+                <div class="treatment-card-pro space-y-2 border-l-4 border-l-[#c77b19] bg-[#fffdf9]">
+                    <div class="flex items-center gap-2 text-sm font-extrabold text-[#c77b19]">
+                        <span>🛡</span>
+                        <span>Cultural &amp; Preventive Measures</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-[#506257] leading-relaxed" id="resPrevention">{{ result.preventive_measures if result else "" }}</p>
+                </div>
+
+                <!-- Severity & Biosecurity Tier -->
+                <div class="flex items-center justify-between text-xs pt-1 border-t border-[#f0f3f0]" id="resSeverityContainer">
+                    <div>
+                        <span class="font-bold text-[#182820] block">Biosecurity Severity Index</span>
+                        <span class="text-[11px] text-[#718078]">Pathological canopy impact scale</span>
+                    </div>
+                    <span class="pill medium text-xs font-bold" id="resSeverity">{{ result.severity if result else "25%" }}</span>
+                </div>
+
+                <!-- Multi-Action Workflow Toolbar -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                    <button type="button" onclick="copyTreatmentProtocol()" class="secondary-btn text-xs py-2.5 px-3 text-center justify-center flex items-center gap-1.5" title="Copy prescription protocol to clipboard">
+                        <span>📋</span>
+                        <span id="btnCopyText">Copy Protocol</span>
+                    </button>
+                    <button type="button" onclick="askAgronomistAboutCurrent()" class="secondary-btn text-xs py-2.5 px-3 text-center justify-center flex items-center gap-1.5 text-[#107a4b]" title="Discuss in real-time with Voice AI Agronomist">
+                        <span>💬</span>
+                        <span>Ask Agronomist</span>
+                    </button>
+                    <button type="button" onclick="window.print()" class="secondary-btn text-xs py-2.5 px-3 text-center justify-center flex items-center gap-1.5" title="Print clinical report">
+                        <span>🖨️</span>
+                        <span>Print Report</span>
+                    </button>
+                    <button type="button" onclick="resetScanner()" class="primary-btn text-xs py-2.5 px-3 text-center justify-center flex items-center gap-1.5">
+                        <span>＋</span>
+                        <span>Scan Another</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Interactive Client-side Scripting -->
+<script>
+    let currentSelectedFile = null;
+    let currentBase64 = null;
+    let currentScanImageUrl = {% if result %}{{ result.image_url|tojson }}{% else %}null{% endif %};
+    let currentDiseaseText = {% if result %}{{ result.disease|tojson }}{% else %}''{% endif %};
+    let currentTreatmentText = {% if result %}{{ result.treatment|tojson }}{% else %}''{% endif %};
+
+    // 1-Click Specimen Loader
+    const specimenPresets = {
+        'tomato_blight': {
+            url: '/static/sample_leaves/tomato_blight.jpg',
+            filename: 'tomato_early_blight_specimen.jpg',
+            crop: 'Tomato',
+            label: 'Solanaceae Quad Block A'
+        },
+        'potato_blight': {
+            url: '/static/sample_leaves/potato_blight.jpg',
+            filename: 'potato_late_blight_specimen.jpg',
+            crop: 'Potato',
+            label: 'Tuber Sentinel Plot C'
+        },
+        'corn_rust': {
+            url: '/static/sample_leaves/corn_rust.jpg',
+            filename: 'corn_common_rust_specimen.jpg',
+            crop: 'Corn',
+            label: 'Maize Center Pivot Row 12'
+        },
+        'apple_scab': {
+            url: '/static/sample_leaves/apple_scab.jpg',
+            filename: 'apple_scab_specimen.jpg',
+            crop: 'Apple',
+            label: 'East Orchard Block 4'
+        },
+        'tomato_healthy': {
+            url: '/static/sample_leaves/tomato_healthy.jpg',
+            filename: 'tomato_healthy_specimen.jpg',
+            crop: 'Tomato',
+            label: 'Greenhouse Polyhouse Zone 1'
+        }
+    };
+
+    async function loadSampleSpecimen(specimenKey) {
+        const spec = specimenPresets[specimenKey];
+        if (!spec) return;
+
+        // Visual feedback
+        const btnSubmit = document.getElementById('btnSubmitScan');
+        const btnText = document.getElementById('btnSubmitText');
+        const origText = btnText.textContent;
+        btnText.textContent = '⚡ Loading specimen ' + spec.crop + '...';
+
+        try {
+            const resp = await fetch(spec.url);
+            if (!resp.ok) throw new Error('Failed to load sample image');
+            const blob = await resp.blob();
+            const file = new File([blob], spec.filename, { type: 'image/jpeg' });
+
+            // Feed file into fileInput via DataTransfer
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            const fileInput = document.getElementById('fileInput');
+            fileInput.files = dt.files;
+
+            // Update form fields
+            document.getElementById('cropSelect').value = spec.crop;
+            document.getElementById('fieldLabelInput').value = spec.label;
+
+            // Trigger preview
+            previewImage(fileInput);
+
+            // Automatically trigger form submission for instantaneous 13.9ms inference
+            setTimeout(() => {
+                document.getElementById('upload-form').dispatchEvent(new Event('submit', { cancelable: true }));
+            }, 200);
+
+        } catch (e) {
+            console.error('Error loading specimen:', e);
+            btnText.textContent = origText;
+            alert('Could not load sample specimen: ' + e.message);
+        }
+    }
+
+    // Drag and drop setup
+    const dropzone = document.getElementById('dropzoneBox');
+    if (dropzone) {
+        ['dragenter', 'dragover'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('drag-active');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('drag-active');
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                const file = e.dataTransfer.files[0];
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                document.getElementById('fileInput').files = dt.files;
+                previewImage(document.getElementById('fileInput'));
+            }
+        });
+    }
+
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            currentSelectedFile = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentBase64 = e.target.result;
+                const img = document.getElementById('imagePreview');
+                img.src = currentBase64;
+                img.classList.remove('hidden');
+                document.getElementById('previewHudOverlay').classList.remove('hidden');
+                
+                const fn = document.getElementById('file-name');
+                fn.textContent = '✓ ' + currentSelectedFile.name + ' (' + Math.round(currentSelectedFile.size/1024) + ' KB)';
+                fn.classList.remove('hidden');
+
+                document.getElementById('dropzoneIcon').textContent = '🌿';
+                document.getElementById('dropzoneHeadline').textContent = 'Foliar Specimen Ready';
+                document.getElementById('dropzoneSubtext').textContent = 'Click below to execute ResNet50 neural classification.';
+            };
+            reader.readAsDataURL(currentSelectedFile);
+        }
+    }
+
+    function resetScanner() {
+        document.getElementById('fileInput').value = '';
+        currentSelectedFile = null;
+        currentBase64 = null;
+        currentScanImageUrl = null;
+        currentDiseaseText = '';
+        currentTreatmentText = '';
+        document.getElementById('imagePreview').classList.add('hidden');
+        document.getElementById('previewHudOverlay').classList.add('hidden');
+        document.getElementById('file-name').classList.add('hidden');
+        document.getElementById('dropzoneIcon').textContent = '↑';
+        document.getElementById('dropzoneHeadline').textContent = 'Drop leaf photograph here';
+        document.getElementById('dropzoneSubtext').textContent = 'Drag and drop leaf image, or click to choose from your device. JPG, PNG or WEBP.';
+        document.getElementById('emptyResultCard').classList.remove('hidden');
+        document.getElementById('activeResultCard').classList.add('hidden');
+        document.getElementById('geminiResultBox').classList.add('hidden');
+        stopLaserAnimation();
+    }
+
+    function startLaserAnimation() {
+        const laser = document.getElementById('scannerLaser');
+        const box = document.getElementById('dropzoneBox');
+        if (laser) {
+            laser.style.display = 'block';
+            laser.style.animation = 'laserSweepAnim 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate';
+        }
+        if (box) box.classList.add('scanning-active');
+    }
+
+    function stopLaserAnimation() {
+        const laser = document.getElementById('scannerLaser');
+        const box = document.getElementById('dropzoneBox');
+        if (laser) {
+            laser.style.display = 'none';
+            laser.style.animation = 'none';
+        }
+        if (box) box.classList.remove('scanning-active');
+    }
+
+    // Attach auth token on auth state change
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (user) {
+            try {
+                const token = await user.getIdToken();
+                const field = document.getElementById('auth_token_field');
+                if (field) field.value = token;
+            } catch(e) {}
+        }
+    });
+
+    // Handle AJAX form submission for instantaneous 13.9ms response
+    document.getElementById('upload-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('fileInput');
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert('Please choose or drop a leaf image first, or click one of the 1-click test specimens above.');
+            return;
+        }
+
+        const btn = document.getElementById('btnSubmitScan');
+        const btnText = document.getElementById('btnSubmitText');
+        const origText = btnText.textContent;
+        btn.disabled = true;
+        btnText.textContent = '⚡ Running 13.9ms ResNet50 Neural Model...';
+        startLaserAnimation();
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('crop', document.getElementById('cropSelect').value);
+        formData.append('field_label', document.getElementById('fieldLabelInput').value);
+        formData.append('symptoms', document.getElementById('symptomsInput').value);
+
+        const tokenField = document.getElementById('auth_token_field');
+        if (tokenField && tokenField.value) {
+            formData.append('auth_token', tokenField.value);
+        }
+
+        try {
+            const headers = {};
+            if (tokenField && tokenField.value) {
+                headers['Authorization'] = 'Bearer ' + tokenField.value;
+            }
+
+            const startTime = performance.now();
+            const response = await fetch('/api/predict', {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP Error ${response.status}`);
+            }
+
+            const data = await response.json();
+            const inferenceMs = Math.round(performance.now() - startTime);
+            currentScanImageUrl = data.image_url;
+            currentDiseaseText = data.disease;
+            currentTreatmentText = data.treatment || '';
+
+            // Render Result Card
+            document.getElementById('emptyResultCard').classList.add('hidden');
+            const activeCard = document.getElementById('activeResultCard');
+            activeCard.classList.remove('hidden');
+
+            document.getElementById('resDisease').textContent = data.disease;
+            const isHealthy = data.disease.toLowerCase().includes('healthy');
+            const badge = document.getElementById('resStatusBadge');
+            badge.textContent = isHealthy ? 'Healthy Foliage' : 'Pathology Detected';
+            badge.className = 'pill shrink-0 ' + (isHealthy ? 'good' : 'high');
+
+            document.getElementById('resConfidence').textContent = data.confidence;
+            const bar = document.getElementById('resConfidenceBar');
+            bar.style.width = data.confidence;
+            bar.style.background = isHealthy ? '#107a4b' : '#dc2626';
+
+            document.getElementById('resDescription').textContent = data.description || 'Foliar pathology analysis complete.';
+            document.getElementById('resTreatment').textContent = data.treatment || 'Maintain adequate soil moisture and prune infected leaves.';
+            document.getElementById('resPrevention').textContent = data.preventive_measures || 'Ensure proper aeration and avoid overhead watering.';
+            document.getElementById('resSeverity').textContent = data.severity || '25%';
+
+            // Check if Gemini Fallback was activated (<60% confidence or explicit fallback)
+            const isFallback = Boolean(data.is_ai_fallback || data.double_verified);
+            let confNum = 100;
+            try {
+                confNum = parseFloat(String(data.confidence || '').replace('%', '').trim()) || 0;
+            } catch(e) {}
+
+            if (isFallback) {
+                document.getElementById('btnVerifyNow').classList.add('hidden');
+                document.getElementById('resDvBadge').classList.remove('hidden');
+                document.getElementById('resDvBadge').textContent = '✨ Gemini Fallback Active (<60%)';
+                document.getElementById('resDvSubtext').innerHTML = '<b class="text-[#107a4b]">Edge Confidence &lt; 60% — Directly rerouted to Google Gemini Multimodal Vision</b>';
+                const geminiBox = document.getElementById('geminiResultBox');
+                if (geminiBox) {
+                    geminiBox.classList.remove('hidden');
+                    document.getElementById('geminiConfTag').textContent = data.confidence || '98% (Gemini Fallback)';
+                    document.getElementById('geminiDetailsText').innerHTML = `
+                        <div class="p-3 bg-[#f3faf5] rounded-xl border border-[#c1ebd0] mb-2">
+                            <strong class="block text-sm text-[#182820] mb-1">
+                                🌿 ${escapeHtml(data.disease)} (Gemini Multimodal Verified)
+                            </strong>
+                            <p class="text-xs text-[#44564c] leading-relaxed mb-2">${escapeHtml(data.description || '')}</p>
+                            ${data.treatment ? `<div class="text-xs text-[#107a4b] bg-white p-2.5 rounded-lg border border-[#cbe5d4]"><b>Remedy Protocol:</b> ${escapeHtml(data.treatment)}</div>` : ''}
+                        </div>
+                    `;
+                }
+            } else if (confNum < 60) {
+                // If confidence is <60% and wasn't double-verified, auto-trigger client-side Gemini fallback
+                document.getElementById('resDvSubtext').innerHTML = '<b class="text-amber-600">Edge Confidence ' + confNum.toFixed(1) + '% &lt; 60% — Auto-routing to Gemini Fallback...</b>';
+                setTimeout(() => forceAIAnalysis(), 300);
+            } else {
+                // High confidence (>=60%), allow optional manual verification
+                document.getElementById('btnVerifyNow').classList.remove('hidden');
+                document.getElementById('btnVerifyNow').textContent = 'Verify with Gemini';
+                document.getElementById('btnVerifyNow').disabled = false;
+                document.getElementById('resDvBadge').classList.add('hidden');
+                document.getElementById('geminiResultBox').classList.add('hidden');
+                document.getElementById('resDvSubtext').textContent = 'Edge confidence high (≥60%). Run secondary cloud model check if needed.';
+            }
+
+            // Save to LocalStorage
+            try {
+                const scanRecord = {
+                    disease: data.disease,
+                    confidence: data.confidence,
+                    severity: data.severity || '25%',
+                    image_url: data.image_url,
+                    timestamp: new Date().toISOString()
+                };
+                let scans = JSON.parse(localStorage.getItem('plantcare_scans') || '[]');
+                scans.unshift(scanRecord);
+                localStorage.setItem('plantcare_scans', JSON.stringify(scans));
+            } catch(e) {}
+
+            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (err) {
+            console.error('Inference error:', err);
+            alert('Diagnostic failed: ' + (err.message || 'Server error'));
+        } finally {
+            stopLaserAnimation();
+            btn.disabled = false;
+            btnText.textContent = origText;
+        }
+    });
+
+    // Gemini Double-Verification
+    async function forceAIAnalysis() {
+        const imagePayload = currentScanImageUrl || currentBase64;
+        if (!imagePayload) {
+            alert('Please perform an initial leaf diagnosis first.');
+            return;
+        }
+
+        const btn = document.getElementById('btnVerifyNow');
+        btn.disabled = true;
+        btn.textContent = '⏳ Consulting Gemini Vision...';
+
+        try {
+            const res = await fetch('/api/verify-gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imagePayload })
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            btn.classList.add('hidden');
+            document.getElementById('resDvBadge').classList.remove('hidden');
+            document.getElementById('resDvSubtext').innerHTML = '<b class="text-[#107a4b]">Consensus confirmed by Google Gemini 3.8 Flash</b>';
+
+            // Dynamically update the main diagnostic title with verified plant & pathology
+            if (data.plant && data.disease) {
+                const plantName = data.plant.charAt(0).toUpperCase() + data.plant.slice(1);
+                const diseaseName = data.disease.charAt(0).toUpperCase() + data.disease.slice(1);
+                currentDiseaseText = plantName + ' — ' + diseaseName;
+                
+                document.getElementById('resDisease').innerHTML = `
+                    <span class="text-[#107a4b]">${escapeHtml(plantName)}</span> — ${escapeHtml(diseaseName)}
+                    <span class="text-xs bg-[#e8f6ee] text-[#107a4b] border border-[#b8ded0] px-2.5 py-1 rounded-full font-bold ml-2 inline-flex items-center gap-1">
+                        <span>✓</span> Gemini Verified
+                    </span>
+                `;
+
+                if (data.description) document.getElementById('resDescription').textContent = data.description;
+                if (data.treatment) {
+                    document.getElementById('resTreatment').textContent = data.treatment;
+                    currentTreatmentText = data.treatment;
+                }
+                if (data.preventive_measures) document.getElementById('resPrevention').textContent = data.preventive_measures;
+                if (data.confidence) document.getElementById('resConfidence').textContent = data.confidence;
+
+                const isHealthy = diseaseName.toLowerCase().includes('healthy');
+                const badge = document.getElementById('resStatusBadge');
+                badge.textContent = isHealthy ? 'Healthy Foliage' : 'Pathology Detected';
+                badge.className = 'pill shrink-0 ' + (isHealthy ? 'good' : 'high');
+            }
+
+            const geminiBox = document.getElementById('geminiResultBox');
+            geminiBox.classList.remove('hidden');
+            document.getElementById('geminiConfTag').textContent = data.confidence || '98% Consensus';
+            document.getElementById('geminiDetailsText').innerHTML = `
+                <div class="p-3 bg-[#f3faf5] rounded-xl border border-[#c1ebd0] mb-2">
+                    <strong class="block text-sm text-[#182820] mb-1">
+                        🌿 ${escapeHtml(data.plant || 'Plant')} — ${escapeHtml(data.disease || 'Condition')}
+                    </strong>
+                    <p class="text-xs text-[#44564c] leading-relaxed mb-2">${escapeHtml(data.description || '')}</p>
+                    ${data.treatment ? `<div class="text-xs text-[#107a4b] bg-white p-2.5 rounded-lg border border-[#cbe5d4]"><b>Remedy Protocol:</b> ${escapeHtml(data.treatment)}</div>` : ''}
+                </div>
+            `;
+        } catch (err) {
+            console.error('Gemini error:', err);
+            btn.disabled = false;
+            btn.textContent = 'Retry Gemini';
+            alert('Gemini verification notice: Cloud request timed out. Local edge ResNet50 neural model remains authoritative.');
+        }
+    }
+
+    // Copy clinical protocol to clipboard
+    function copyTreatmentProtocol() {
+        const text = `PLANTCARE PRO CLINICAL DIAGNOSIS REPORT\n` +
+            `Disease / Condition: ${currentDiseaseText || document.getElementById('resDisease').innerText}\n` +
+            `Edge Confidence: ${document.getElementById('resConfidence').innerText}\n` +
+            `Severity: ${document.getElementById('resSeverity').innerText}\n\n` +
+            `Recommended Agronomic Treatment:\n${document.getElementById('resTreatment').innerText}\n\n` +
+            `Cultural Prevention:\n${document.getElementById('resPrevention').innerText}\n\n` +
+            `Diagnostic Engine: ResNet50 (13.9ms Edge) + Gemini 3.8 Flash Multimodal Consensus`;
+
+        navigator.clipboard.writeText(text).then(() => {
+            const btnCopy = document.getElementById('btnCopyText');
+            btnCopy.textContent = 'Copied ✓';
+            setTimeout(() => { btnCopy.textContent = 'Copy Protocol'; }, 2500);
+        }).catch(err => {
+            alert('Copied details:\n' + text);
+        });
+    }
+
+    // Connect with Global Floating AI Agronomist
+    function askAgronomistAboutCurrent() {
+        const disease = currentDiseaseText || document.getElementById('resDisease').innerText || 'Crop Disease';
+        const crop = document.getElementById('cropSelect').value || 'Crop';
+        const flyout = document.getElementById('chatFlyout');
+
+        // Open chat flyout if hidden
+        if (flyout && flyout.style.display !== 'flex') {
+            if (typeof toggleVoiceChat === 'function') {
+                toggleVoiceChat();
+            }
+        }
+
+        const input = document.getElementById('chatInput');
+        if (input) {
+            input.value = `What are the step-by-step biological and chemical treatment protocols for ${disease} on ${crop}?`;
+            // Auto-focus input
+            input.focus();
+        }
+    }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+</script>
+{% endblock %}

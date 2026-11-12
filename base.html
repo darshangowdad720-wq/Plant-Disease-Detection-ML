@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PlantCare Pro — Smart Crop Intelligence{% endblock %}</title>
+    
+    <!-- Google Fonts: DM Sans & Manrope -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..700&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore-compat.js"></script>
+    
+    <style>
+        :root {
+            --green: #107a4b;
+            --green-dark: #0b5e39;
+            --green-light: #10b981;
+            --mint: #e8f7ee;
+            --mint-light: #f2faf5;
+            --ink: #0f172a;
+            --ink-secondary: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --line-light: #f1f5f9;
+            --bg: #f8faf9;
+            --white: #ffffff;
+            --amber: #d97706;
+            --red: #ef4444;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+            --shadow-lg: 0 12px 30px -4px rgba(16, 122, 75, 0.09), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+            --shadow-xl: 0 24px 48px -12px rgba(16, 122, 75, 0.16);
+
+            /* Subpage Compatibility Tokens */
+            --bg-card: #ffffff;
+            --bg-body: var(--bg);
+            --border-color: var(--line);
+            --text-main: var(--ink);
+            --text-muted: var(--muted);
+            --primary: var(--green);
+            --primary-light: var(--mint);
+            --primary-hover: var(--green-dark);
+            --radius-xl: 20px;
+            --radius-lg: 14px;
+            --radius-md: 10px;
+            --nav-height: 68px;
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            margin: 0;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(16, 122, 75, 0.03) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.03) 0px, transparent 50%);
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--ink);
+            font-size: 15px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4, h5, h6, strong, .font-heading {
+            font-family: 'Manrope', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        /* Glassmorphic Navbar */
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+
+        .brand-mark {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #107a4b 0%, #10b981 100%);
+            display: grid;
+            place-items: center;
+            color: white;
+            font-size: 21px;
+            box-shadow: 0 4px 14px rgba(16, 122, 75, 0.35);
+            transition: transform 0.2s ease;
+        }
+        .brand-mark:hover {
+            transform: scale(1.05) rotate(-3deg);
+        }
+
+        .pill {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            letter-spacing: 0.02em;
+        }
+        .pill.high { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .pill.medium { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .pill.good { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+
+        .pro-card {
+            background: #ffffff;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .pro-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-md);
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--green) 0%, #0d9488 100%);
+            color: #ffffff;
+            border: 0;
+            border-radius: 12px;
+            padding: 11px 22px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 14px rgba(16, 122, 75, 0.22);
+        }
+        .primary-btn:hover {
+            background: linear-gradient(135deg, #0b5e39 0%, #0f766e 100%);
+            transform: translateY(-1.5px);
+            box-shadow: 0 8px 20px rgba(16, 122, 75, 0.32);
+        }
+        .primary-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .secondary-btn {
+            background: #ffffff;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 11px 18px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: var(--shadow-sm);
+        }
+        .secondary-btn:hover {
+            border-color: #94a3b8;
+            color: var(--green);
+            background: #f8fafc;
+            transform: translateY(-1px);
+        }
+        .secondary-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        /* Pulse glow animation */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        }
+
+        .spinner {
+            width: 44px; height: 44px;
+            border: 3.5px solid #e2ece5;
+            border-top: 3.5px solid var(--green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        /* Voice Bot Floating Panel Styles */
+        #voiceChatWidget {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+        }
+        #chatFlyout {
+            width: 400px;
+            max-width: calc(100vw - 32px);
+            height: 540px;
+            max-height: calc(100vh - 100px);
+            background: #ffffff;
+            border-radius: 22px;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.2), 0 0 1px 1px rgba(0, 0, 0, 0.05);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(14px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Modern subtle scrollbar */
+        ::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Loading Overlay -->
+    <div id="global-loader" class="hidden fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex-col items-center justify-center transition-opacity">
+        <div class="spinner"></div>
+        <p class="mt-4 font-semibold text-sm text-gray-900 tracking-wide">Processing Neural Data...</p>
+    </div>
+
+    {% if request.url.path in ['/', '/landing'] %}
+    <!-- Navigation bar completely removed on landing page as requested by user -->
+    {% elif request.url.path == '/login' %}
+    <!-- Clean Auth Header -->
+    <header class="bg-white border-b border-[#e5ece7] px-6 py-4 sticky top-0 z-40">
+        <div class="max-w-[1500px] mx-auto flex justify-between items-center">
+            <!-- Brand -->
+            <a href="/" class="flex items-center gap-2.5 text-decoration-none" title="PlantCare Pro">
+                <div class="brand-mark">♧</div>
+                <div>
+                    <span class="font-extrabold text-xl text-gray-900 tracking-tight block leading-tight">PlantCare<span class="text-[#16794b]"> Pro</span></span>
+                    <span class="text-[10px] font-bold tracking-widest text-[#718078] uppercase block">Smart Crop Intelligence</span>
+                </div>
+            </a>
+
+            <!-- Return link to Landing Overview -->
+            <a href="/" class="text-xs font-bold text-[#16794b] hover:text-[#0f633c] bg-[#e8f6ee] hover:bg-[#d6f0df] px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5">
+                <span>← Back to Overview</span>
+            </a>
+        </div>
+    </header>
+    {% else %}
+    <!-- Full Dashboard & Workspace Top Navigation Bar -->
+    <header class="glass-nav px-4 sm:px-6 py-3 sticky top-0 z-40">
+        <div class="max-w-[1500px] mx-auto flex justify-between items-center gap-4">
+            
+            <!-- Brand -->
+            <a href="/" class="flex items-center gap-2.5 text-decoration-none" title="PlantCare Pro Home">
+                <div class="brand-mark">♧</div>
+                <div>
+                    <span class="font-extrabold text-xl text-gray-900 tracking-tight block leading-tight">PlantCare<span class="text-[#16794b]"> Pro</span></span>
+                    <span class="text-[10px] font-bold tracking-widest text-[#718078] uppercase block">Smart Crop Intelligence</span>
+                </div>
+            </a>
+
+            <!-- Desktop Nav Links (Visible on lg: 1024px+) -->
+            <nav class="hidden lg:flex items-center gap-1">
+                <a href="/" class="px-3 py-2 rounded-xl text-sm font-bold transition-all text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]">
+                    <span>🏠</span> Overview
+                </a>
+                <a href="/dashboard" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/dashboard' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>▦</span> Dashboard
+                </a>
+                <a href="/diagnose" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/diagnose' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>⌗</span> Disease Scanner
+                </a>
+                <a href="/growth" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/growth' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>📹</span> CCTV &amp; Growth
+                </a>
+                <a href="/live-scan" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/live-scan' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>📷</span> Live Detection
+                </a>
+                <a href="/library" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/library' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>▤</span> Encyclopedia
+                </a>
+                <a href="/help" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/help' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>ⓘ</span> Guide
+                </a>
+                <a href="/profile" class="px-3 py-2 rounded-xl text-sm font-bold transition-all {% if request.url.path == '/profile' %}bg-[#e8f6ee] text-[#16794b]{% else %}text-[#6c7c72] hover:bg-[#f4f8f5] hover:text-[#16794b]{% endif %}">
+                    <span>♙</span> Farm Profile
+                </a>
+            </nav>
+
+            <!-- Actions / Auth / Notification / Profile Section -->
+            <div class="flex items-center gap-2.5">
+                <div class="hidden sm:flex items-center gap-1.5 bg-[#eef8f2] border border-[#c7e8d4] px-2.5 py-1 rounded-full text-xs text-[#16794b] font-bold">
+                    <span class="w-2 h-2 rounded-full bg-[#10b981] animate-pulse"></span>
+                    <span>Dual-AI Online</span>
+                </div>
+
+                <!-- Notification Bell & Interactive Dropdown -->
+                <div class="relative">
+                    <button onclick="toggleNotifications()" class="relative w-9 h-9 rounded-xl border border-[#e5ece7] bg-white hover:bg-[#f4f8f5] grid place-items-center text-[#506257] transition-all" title="Farm Alerts & Notifications">
+                        <i class="fa-regular fa-bell text-sm"></i>
+                        <span id="notifBadge" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                    </button>
+
+                    <!-- Notifications Dropdown Menu -->
+                    <div id="notificationDropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-[#e5ece7] rounded-2xl shadow-xl z-50 p-4">
+                        <div class="flex items-center justify-between pb-3 border-b border-[#f0f3f0]">
+                            <div class="flex items-center gap-2">
+                                <span class="font-extrabold text-sm text-[#182820]">Field Notifications</span>
+                                <span class="bg-[#e8f6ee] text-[#16794b] text-[10px] font-bold px-2 py-0.5 rounded-full" id="notifCount">3 active</span>
+                            </div>
+                            <button onclick="clearNotifications()" class="text-[11px] text-[#16794b] font-bold hover:underline">Mark read</button>
+                        </div>
+                        
+                        <div class="divide-y divide-[#f0f3f0] max-h-[320px] overflow-y-auto space-y-1 my-2">
+                            <div class="py-2.5 flex items-start gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-[#fff0ed] text-[#c54b45] grid place-items-center text-xs shrink-0 font-bold">⚠</div>
+                                <div class="text-xs">
+                                    <strong class="text-[#182820] block">High Fungal Risk Advisory</strong>
+                                    <p class="text-[#718078] text-[11px] mt-0.5">High humidity detected (>78%). Preventative copper spray recommended on Tomato &amp; Potato fields.</p>
+                                    <span class="text-[9px] text-[#9aa69e] mt-1 block">Live Weather Sentinel</span>
+                                </div>
+                            </div>
+                            <div class="py-2.5 flex items-start gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-[#edf7f0] text-[#16794b] grid place-items-center text-xs shrink-0 font-bold">⚡</div>
+                                <div class="text-xs">
+                                    <strong class="text-[#182820] block">Dual-AI Neural Engine Active</strong>
+                                    <p class="text-[#718078] text-[11px] mt-0.5">Local 13.9ms ResNet50 edge model &amp; Gemini 3.8 Flash multimodal consensus operational.</p>
+                                    <span class="text-[9px] text-[#9aa69e] mt-1 block">Diagnostics Core</span>
+                                </div>
+                            </div>
+                            <div class="py-2.5 flex items-start gap-3">
+                                <div class="w-7 h-7 rounded-lg bg-[#edf3ff] text-[#2563eb] grid place-items-center text-xs shrink-0 font-bold">📹</div>
+                                <div class="text-xs">
+                                    <strong class="text-[#182820] block">4 CCTV Field Sentinels Online</strong>
+                                    <p class="text-[#718078] text-[11px] mt-0.5">Real-time Visual SLAM camera pose active with spatial raycaster bounding boxes.</p>
+                                    <span class="text-[9px] text-[#9aa69e] mt-1 block">Surveillance Grid</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-[#f0f3f0] text-center">
+                            <a href="/growth" class="text-xs font-bold text-[#16794b] hover:underline">View CCTV Surveillance &amp; Growth Hub →</a>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="/diagnose" class="primary-btn text-xs py-2 px-3 shadow-none hidden sm:inline-flex">
+                    ＋ New scan
+                </a>
+
+                <!-- Auth Buttons & User Avatar -->
+                <div id="auth-section" class="flex items-center gap-2" style="display: none;">
+                    <a href="/profile" class="w-8 h-8 rounded-full bg-[#dcefe3] text-[#16794b] font-extrabold text-xs grid place-items-center hover:ring-2 hover:ring-[#16794b] transition-all cursor-pointer" id="headerUserAvatar" title="Farm Profile &amp; Settings">
+                        CR
+                    </a>
+                    <button onclick="logout()" class="text-xs font-bold text-red-500 hover:text-red-600 transition-colors py-1 px-2 rounded-lg hover:bg-red-50">Sign Out</button>
+                </div>
+                <div id="unauth-section" style="display: none;">
+                    <a href="/login" class="text-xs font-bold text-[#16794b] hover:text-[#0f633c] bg-[#e8f6ee] hover:bg-[#d6f0df] px-3 py-1.5 rounded-xl transition-colors">Sign In</a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button onclick="toggleMobileMenu()" class="lg:hidden p-2 text-[#718078] hover:text-[#16794b] focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Drawer -->
+        <div id="mobile-menu" class="hidden lg:hidden border-t border-[#e5ece7] mt-3 pt-3 flex flex-col gap-1.5">
+            <a href="/" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">🏠 Overview</a>
+            <a href="/dashboard" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">▦ Farm Dashboard</a>
+            <a href="/diagnose" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">⌗ Disease Scanner</a>
+            <a href="/growth" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">📹 CCTV &amp; Growth</a>
+            <a href="/live-scan" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">📷 Live Detection</a>
+            <a href="/library" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">▤ Encyclopedia</a>
+            <a href="/help" class="px-3 py-2 rounded-lg text-sm font-bold text-[#182820] hover:bg-[#f5f8f5]">ⓘ Guide</a>
+            <a href="/profile" class="px-3 py-2 rounded-lg text-sm font-bold text-[#16794b] hover:bg-[#e8f6ee]">♙ Farm Profile &amp; Settings</a>
+        </div>
+    </header>
+    {% endif %}
+
+    <main class="flex-grow w-full max-w-[1500px] mx-auto p-4 sm:p-6 lg:p-8">
+        {% block content %}{% endblock %}
+    </main>
+    <!-- Corporate Agricultural Footer -->
+    <footer class="mt-auto border-t border-[#e2e8f0] bg-white/70 backdrop-blur-md py-6 px-4 sm:px-8 text-xs text-[#64748b]">
+        <div class="max-w-[1500px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="brand-mark w-7 h-7 text-xs rounded-lg shadow-sm">♧</div>
+                <div>
+                    <span class="font-extrabold text-[#0f172a] text-sm">PlantCare Pro</span>
+                    <span class="text-[10px] text-[#64748b] ml-1.5 font-medium">Enterprise Dual-AI Agricultural Platform</span>
+                </div>
+            </div>
+
+            <!-- Live Status Dots -->
+            <div class="flex flex-wrap items-center justify-center gap-4 text-[11px] font-semibold text-[#334155]">
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>ResNet50 13.9ms Edge</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-blue-500"></span>Gemini 2.5 Flash Vision</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-purple-500"></span>4-Angle 3D CCTV SLAM</span>
+                <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Open-Meteo Satellite</span>
+            </div>
+
+            <div class="text-[11px] text-[#94a3b8]">
+                &copy; 2026 PlantCare Pro &bull; All systems operational
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- Global Floating AI Agronomist Chatbot with Voice ON -->
+    {% if request.url.path != '/login' %}
+    <div id="voiceChatWidget">
+        <!-- Floating Pill Trigger Button -->
+        <button id="chatToggleBtn" onclick="toggleVoiceChat()" class="bg-[#16794b] hover:bg-[#0f633c] text-white font-bold text-xs py-3 px-4 rounded-full shadow-xl flex items-center gap-2.5 transition-all hover:scale-105">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#00ff88] animate-pulse"></span>
+            <span>💬 AI Agronomist</span>
+            <span class="bg-[#20945d] text-[10px] px-2 py-0.5 rounded-full font-extrabold text-[#d2f4df]" id="voiceBadgePill">🔊 Voice ON</span>
+        </button>
+
+        <!-- Expandable Chat Flyout Panel -->
+        <div id="chatFlyout" class="flex flex-col">
+            <!-- Header -->
+            <div class="bg-[#16794b] text-white p-3.5 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-white/20 grid place-items-center text-sm font-bold">🌿</div>
+                    <div>
+                        <strong class="text-xs font-extrabold block leading-tight">AI Agronomist</strong>
+                        <span class="text-[9px] text-[#bce7cb] block">Multimodal Voice &amp; Vision</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleVoiceOutput()" id="btnVoiceToggle" class="bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold px-2.5 py-1 rounded-full transition-colors" title="Toggle AI Voice Output">
+                        🔊 Voice ON
+                    </button>
+                    <button onclick="toggleVoiceChat()" class="text-white/80 hover:text-white p-1 text-sm font-bold">✕</button>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="chatMessages" class="flex-1 p-3.5 overflow-y-auto space-y-3 bg-[#f8faf8] text-xs">
+                <div class="flex items-start gap-2 max-w-[85%]">
+                    <div class="w-6 h-6 rounded-full bg-[#16794b] text-white grid place-items-center text-[10px] shrink-0 font-bold">AI</div>
+                    <div class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-[#e5ece7] text-[#182820] shadow-sm leading-relaxed">
+                        Hello! I am your AI Agronomist with Voice Assistant enabled. Ask about crop diseases, treatment protocols, weather risks, or click the mic to speak! 🎙️
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Attachment Preview -->
+            <div id="chatImagePreview" class="hidden px-3.5 py-1.5 bg-[#edf7f0] border-t border-[#d5eadb] flex items-center justify-between">
+                <span class="text-[10px] text-[#16794b] font-bold flex items-center gap-1.5">
+                    📷 <span id="attachedImageName">Leaf photo attached</span>
+                </span>
+                <button onclick="clearChatImage()" class="text-[#c54b45] text-xs font-bold hover:underline">Remove</button>
+            </div>
+
+            <!-- Input Bar -->
+            <form id="chatFlyoutForm" onsubmit="sendVoiceChatMessage(event)" class="p-2.5 bg-white border-t border-[#e5ece7] flex items-center gap-2">
+                <input type="file" id="chatFileInput" accept="image/*" class="hidden" onchange="handleChatImageUpload(event)">
+                <button type="button" onclick="document.getElementById('chatFileInput').click()" class="w-8 h-8 rounded-xl border border-[#e5ece7] text-[#718078] hover:text-[#16794b] hover:bg-[#f4f8f5] grid place-items-center text-xs shrink-0" title="Attach Leaf Photo">
+                    📷
+                </button>
+                <button type="button" id="btnMicInput" onclick="startSpeechRecognition()" class="w-8 h-8 rounded-xl border border-[#e5ece7] text-[#718078] hover:text-[#16794b] hover:bg-[#f4f8f5] grid place-items-center text-xs shrink-0" title="Voice Input (Speech-to-Text)">
+                    🎙️
+                </button>
+                <input type="text" id="chatInputText" placeholder="Ask question or tap mic..." class="flex-1 bg-[#f5f8f5] border border-[#e2eee5] rounded-xl px-3 py-2 text-xs text-[#182820] outline-none focus:border-[#16794b]">
+                <button type="submit" class="w-8 h-8 rounded-xl bg-[#16794b] text-white hover:bg-[#0f633c] grid place-items-center text-xs shrink-0 font-bold shadow-sm">
+                    ➤
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <footer class="border-t border-[#e5ece7] bg-white py-6 text-center text-xs text-[#718078]">
+        <div class="max-w-[1500px] mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>PlantCare Pro — High-Performance Dual-AI Agricultural Diagnostic Engine</span>
+            <span>ResNet50 Edge (13.9ms) + Gemini 3.8 Flash Vision + 4-Camera CCTV Growth Hub</span>
+        </div>
+    </footer>
+
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) menu.classList.toggle('hidden');
+        }
+
+        // --- Notification Dropdown System ---
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function clearNotifications() {
+            const badge = document.getElementById('notifBadge');
+            const count = document.getElementById('notifCount');
+            if (badge) badge.style.display = 'none';
+            if (count) count.textContent = '0 active';
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('notificationDropdown');
+            const notifBtn = e.target.closest('button[title*="Notifications"]');
+            if (dropdown && !dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !notifBtn) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // --- Global Voice AI Agronomist Chatbot with Voice ON ---
+        let isVoiceOutputEnabled = true;
+        let attachedChatImageBase64 = null;
+        let recognition = null;
+        let isListening = false;
+
+        function toggleVoiceChat() {
+            const flyout = document.getElementById('chatFlyout');
+            if (flyout) {
+                const isOpen = flyout.style.display === 'flex';
+                flyout.style.display = isOpen ? 'none' : 'flex';
+                if (!isOpen) {
+                    document.getElementById('chatInputText').focus();
+                }
+            }
+        }
+
+        function toggleVoiceOutput() {
+            isVoiceOutputEnabled = !isVoiceOutputEnabled;
+            const btn = document.getElementById('btnVoiceToggle');
+            const pill = document.getElementById('voiceBadgePill');
+            const label = isVoiceOutputEnabled ? '🔊 Voice ON' : '🔇 Voice OFF';
+            if (btn) btn.textContent = label;
+            if (pill) pill.textContent = label;
+            if (!isVoiceOutputEnabled && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function handleChatImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                attachedChatImageBase64 = evt.target.result;
+                document.getElementById('attachedImageName').textContent = file.name;
+                document.getElementById('chatImagePreview').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearChatImage() {
+            attachedChatImageBase64 = null;
+            document.getElementById('chatFileInput').value = '';
+            document.getElementById('chatImagePreview').classList.add('hidden');
+        }
+
+        // Web Speech API: Voice-to-Text Microphone Input
+        function startSpeechRecognition() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) {
+                alert("Speech recognition is not supported in this browser. Please type your query.");
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new SpeechRec();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    const micBtn = document.getElementById('btnMicInput');
+                    if (micBtn) {
+                        micBtn.style.color = '#c54b45';
+                        micBtn.style.borderColor = '#c54b45';
+                    }
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    const input = document.getElementById('chatInputText');
+                    if (input) {
+                        input.value = transcript;
+                    }
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    const micBtn = document.getElementById('btnMicInput');
+                    if (micBtn) {
+                        micBtn.style.color = '';
+                        micBtn.style.borderColor = '';
+                    }
+                };
+
+                recognition.onerror = () => {
+                    isListening = false;
+                    const micBtn = document.getElementById('btnMicInput');
+                    if (micBtn) {
+                        micBtn.style.color = '';
+                        micBtn.style.borderColor = '';
+                    }
+                };
+            }
+
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
+
+        // Text-to-Speech Voice Output (SpeechSynthesis)
+        function speakResponse(text) {
+            if (!isVoiceOutputEnabled || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const cleanText = text.replace(/[*_#`]/g, '');
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function sendVoiceChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInputText');
+            let q = input.value.trim();
+            if (!q && !attachedChatImageBase64) return;
+            if (!q) q = "Please inspect this attached leaf image and diagnose foliar pathology.";
+
+            const messagesDiv = document.getElementById('chatMessages');
+
+            // Render User Bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = "flex items-start justify-end gap-2";
+            userBubble.innerHTML = `
+                <div class="bg-[#16794b] text-white p-2.5 rounded-2xl rounded-tr-none text-xs max-w-[85%] leading-relaxed shadow-sm">
+                    ${attachedChatImageBase64 ? '<span class="block text-[10px] font-bold text-[#bfe8cd] mb-1">📷 [Photo Attached]</span>' : ''}
+                    ${q}
+                </div>
+            `;
+            messagesDiv.appendChild(userBubble);
+            input.value = '';
+            const imageToSend = attachedChatImageBase64;
+            clearChatImage();
+
+            // Typing Indicator
+            const typingBubble = document.createElement('div');
+            typingBubble.className = "flex items-start gap-2 max-w-[85%]";
+            typingBubble.innerHTML = `
+                <div class="w-6 h-6 rounded-full bg-[#16794b] text-white grid place-items-center text-[10px] shrink-0 font-bold">AI</div>
+                <div class="bg-white p-2.5 rounded-2xl rounded-tl-none border border-[#e5ece7] text-[#718078] text-xs">
+                    <span class="animate-pulse">Analyzing crop condition with Gemini AI...</span>
+                </div>
+            `;
+            messagesDiv.appendChild(typingBubble);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: q, image: imageToSend, context: 'Dashboard Voice Assistant' })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    const reply = data.reply || "Foliar assessment complete. Ensure dry foliage and proper aeration.";
+                    typingBubble.querySelector('div:last-child').className = "bg-white p-2.5 rounded-2xl rounded-tl-none border border-[#e5ece7] text-[#182820] text-xs shadow-sm leading-relaxed";
+                    typingBubble.querySelector('div:last-child').textContent = reply;
+                    speakResponse(reply);
+                } else {
+                    typingBubble.querySelector('div:last-child').textContent = "Consult agricultural extension specialist. Ensure proper leaf aeration.";
+                }
+            } catch (err) {
+                typingBubble.querySelector('div:last-child').textContent = "Keep leaves dry and inspect regularly for fungal spots.";
+            }
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Global Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDGelJ0TEWGvzsCQJZ4c3YHXmZ_1EjYwso",
+            authDomain: "plant-disease-detection-bf9ee.firebaseapp.com",
+            projectId: "plant-disease-detection-bf9ee",
+            storageBucket: "plant-disease-detection-bf9ee.firebasestorage.app",
+            messagingSenderId: "1056581451556",
+            appId: "1:1056581451556:web:1584c079ce2e6a3c6131c9"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        // Strict Login & Protected Routes Guard
+        const protectedRoutes = ['/dashboard', '/profile', '/diagnose', '/growth', '/live-scan'];
+        const currentPath = window.location.pathname;
+
+        firebase.auth().onAuthStateChanged(async (user) => {
+            const isProtected = protectedRoutes.includes(currentPath);
+
+            if (!user) {
+                localStorage.removeItem('authToken');
+                
+                // If user is trying to access dashboard or protected page without login, immediately redirect to login!
+                if (isProtected && currentPath !== '/login' && currentPath !== '/landing' && currentPath !== '/') {
+                    window.location.replace('/login');
+                    return;
+                }
+
+                const authSection = document.getElementById('auth-section');
+                const unauthSection = document.getElementById('unauth-section');
+                if (authSection) authSection.style.display = 'none';
+                if (unauthSection) unauthSection.style.display = 'block';
+                const landingAuth = document.getElementById('landing-auth-actions');
+                const landingUnauth = document.getElementById('landing-unauth-actions');
+                if (landingAuth) landingAuth.style.display = 'none';
+                if (landingUnauth) landingUnauth.style.display = 'flex';
+            } else {
+                try {
+                    const token = await user.getIdToken();
+                    localStorage.setItem('authToken', token);
+                } catch(e) {}
+
+                // If already logged in and visiting login, go directly to dashboard
+                if (currentPath === '/login') {
+                    window.location.replace('/dashboard');
+                    return;
+                }
+
+                // Reveal app container if hidden
+                const appContainer = document.getElementById('dashboardApp');
+                if (appContainer) appContainer.style.display = 'block';
+
+                const authSection = document.getElementById('auth-section');
+                const unauthSection = document.getElementById('unauth-section');
+                const avatar = document.getElementById('headerUserAvatar');
+
+                if (authSection) authSection.style.display = 'flex';
+                if (unauthSection) unauthSection.style.display = 'none';
+                const landingAuth = document.getElementById('landing-auth-actions');
+                const landingUnauth = document.getElementById('landing-unauth-actions');
+                if (landingAuth) landingAuth.style.display = 'flex';
+                if (landingUnauth) landingUnauth.style.display = 'none';
+
+                // Update Avatar Initials
+                const name = user.displayName || user.email || 'CR';
+                const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                if (avatar) avatar.innerText = initials || 'CR';
+                const landingAvatar = document.getElementById('landingUserAvatar');
+                if (landingAvatar) landingAvatar.innerText = initials || 'CR';
+            }
+        });
+
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                localStorage.removeItem('authToken');
+                window.location.href = '/login';
+            });
+        }
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

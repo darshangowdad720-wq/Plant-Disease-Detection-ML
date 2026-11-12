@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PlantCare Pro - Mobile CCTV Node</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-glow: rgba(16, 185, 129, 0.4);
+            --bg: #090e14;
+            --card: #121c26;
+            --border: #1e2e3d;
+            --text: #f1f5f9;
+            --text-dim: #94a3b8;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(18, 28, 38, 0.95);
+            backdrop-filter: blur(12px);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 1.05rem;
+            color: #ffffff;
+        }
+
+        .brand-badge span {
+            background: var(--primary);
+            color: #041009;
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            transition: all 0.3s;
+        }
+
+        .status-pill.live {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: #ef4444;
+            animation: pulseRec 1.5s infinite;
+        }
+
+        .status-pill.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: #10b981;
+        }
+
+        @keyframes pulseRec {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        main {
+            flex: 1;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Hub Info Banner */
+        .hub-info-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #0d1620;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .hub-ip-tag {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Mode Notice Card */
+        .mode-notice-card {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .mode-notice-card .icon {
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .mode-notice-card .content {
+            flex: 1;
+        }
+
+        .mode-notice-card .title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #fbbf24;
+            margin-bottom: 3px;
+        }
+
+        .mode-notice-card .desc {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            line-height: 1.4;
+        }
+
+        /* Cam Slot Selector */
+        .slot-selector-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 12px;
+        }
+
+        .slot-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .slot-btn {
+            background: #0d151e;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 8px;
+            color: var(--text-dim);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .slot-btn.active {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        .slot-btn span.corner-tag {
+            font-size: 0.7rem;
+            color: var(--primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Viewfinder Container */
+        .viewfinder-card {
+            background: #000000;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid var(--border);
+            position: relative;
+            aspect-ratio: 4 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #camera-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #snapshot-preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        #snapshot-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            text-align: center;
+            color: var(--text-dim);
+        }
+
+        .placeholder-icon {
+            font-size: 3rem;
+            opacity: 0.7;
+        }
+
+        .viewfinder-hud {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 12px;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+            z-index: 10;
+        }
+
+        .hud-header {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #10b981;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+
+        .hud-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 1px dashed rgba(16, 185, 129, 0.6);
+            border-radius: 50%;
+        }
+
+        .hud-crosshair::before, .hud-crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(16, 185, 129, 0.8);
+        }
+        .hud-crosshair::before { top: 50%; left: -8px; right: -8px; height: 1px; transform: translateY(-50%); }
+        .hud-crosshair::after { left: 50%; top: -8px; bottom: -8px; width: 1px; transform: translateX(-50%); }
+
+        .hud-footer {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: #7dd3fc;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+
+        /* Controls */
+        .controls-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-broadcast {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px var(--primary-glow);
+            transition: all 0.2s;
+        }
+
+        .btn-broadcast:active {
+            transform: scale(0.98);
+        }
+
+        .btn-broadcast.stop {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-snap-frame {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4);
+            transition: all 0.2s;
+        }
+
+        .btn-snap-frame:active {
+            transform: scale(0.98);
+        }
+
+        .btn-snap-frame.uploading {
+            background: linear-gradient(135deg, #64748b, #475569);
+            cursor: not-allowed;
+        }
+
+        .secondary-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sub {
+            flex: 1;
+            background: #0d151e;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 9px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .btn-sub:hover, .btn-sub:active {
+            color: #ffffff;
+            border-color: #38bdf8;
+        }
+
+        /* Success Toast */
+        .success-toast {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--primary);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: #a7f3d0;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Accordion / Expandable Guide */
+        .guide-accordion {
+            background: rgba(18, 28, 38, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .guide-header {
+            padding: 12px 14px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #94a3b8;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .guide-header:hover {
+            color: #f1f5f9;
+        }
+
+        .guide-body {
+            display: none;
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
+            font-size: 0.76rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .guide-body code {
+            background: #0d151e;
+            color: #38bdf8;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+        }
+
+        .guide-body ol {
+            padding-left: 18px;
+            margin: 6px 0;
+        }
+
+        .guide-body li {
+            margin-bottom: 6px;
+        }
+
+        .copy-pill-btn {
+            background: #1e293b;
+            border: 1px solid #38bdf8;
+            color: #38bdf8;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand-badge">
+            🌿 PlantCare Pro <span>MOBILE NODE</span>
+        </div>
+        <div id="status-pill" class="status-pill">
+            <span id="status-dot">●</span>
+            <span id="status-text">STANDBY</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hub Connection Bar -->
+        <div class="hub-info-bar">
+            <span>HUB: <span id="hub-ip-display" class="hub-ip-tag">Detecting...</span></span>
+            <span id="node-mode-badge" style="color: #38bdf8;">HTTP SNAPSHOT MODE</span>
+        </div>
+
+        <!-- Mobile HTTP Banner (Shown when WebRTC is restricted on plain HTTP) -->
+        <div id="http-mode-banner" class="mode-notice-card">
+            <div class="icon">📱</div>
+            <div class="content">
+                <div class="title">Zero-Install Mobile Wi-Fi Camera</div>
+                <div class="desc">
+                    Tap <strong>Snap &amp; Broadcast</strong> below to transmit camera photos directly to this slot over your Wi-Fi! No apps or certificates required.
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Toast -->
+        <div id="upload-toast" class="success-toast">
+            <span>✅</span>
+            <span id="toast-text">Frame transmitted to CAM 1 successfully!</span>
+        </div>
+
+        <!-- Camera Slot Selector -->
+        <div class="slot-selector-card">
+            <div class="slot-label">
+                <span>Select Corner Surveillance Slot</span>
+                <span id="active-azimuth-tag" style="color:#10b981; font-family: monospace;">135° AZIMUTH</span>
+            </div>
+            <div class="slot-grid">
+                <button class="slot-btn active" id="btn-slot-1" onclick="selectSlot(1)">
+                    <span class="corner-tag">CAM 1: NW</span>
+                    <span>North-West (135°)</span>
+                </button>
+                <button class="slot-btn" id="btn-slot-2" onclick="selectSlot(2)">
+                    <span class="corner-tag">CAM 2: NE</span>
+                    <span>North-East (45°)</span>
+                </button>
+                <button class="slot-btn" id="btn-slot-3" onclick="selectSlot(3)">
+                    <span class="corner-tag">CAM 3: SW</span>
+                    <span>South-West (225°)</span>
+                </button>
+                <button class="slot-btn" id="btn-slot-4" onclick="selectSlot(4)">
+                    <span class="corner-tag">CAM 4: SE</span>
+                    <span>South-East (315°)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Viewfinder -->
+        <div class="viewfinder-card">
+            <!-- Video for WebRTC / Secure context -->
+            <video id="camera-video" playsinline autoplay muted style="display: none;"></video>
+            
+            <!-- Snapshot Preview for HTTP Mode -->
+            <img id="snapshot-preview-img" alt="Captured Camera Frame">
+
+            <!-- Default Placeholder when idle in snapshot mode -->
+            <div id="snapshot-placeholder">
+                <div class="placeholder-icon">📸</div>
+                <div style="font-weight: 700; color: #f1f5f9; font-size: 0.95rem;">Camera Ready</div>
+                <div style="font-size: 0.75rem; max-width: 260px;">Tap the blue button below to capture and stream real-world foliage into Studio</div>
+            </div>
+
+            <!-- Viewfinder HUD Overlay -->
+            <div class="viewfinder-hud">
+                <div class="hud-header">
+                    <span id="hud-cam-label">CAM 1 [NW]</span>
+                    <span id="hud-fps-label">SNAPSHOT</span>
+                </div>
+
+                <div class="hud-crosshair"></div>
+
+                <div class="hud-footer">
+                    <span id="hud-time">--:--:--</span>
+                    <span id="hud-stream-state">LINK: READY</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden Native File Input for Mobile Browser Camera Capture -->
+        <input type="file" id="phone-camera-file" accept="image/*" capture="environment" style="display: none;" onchange="handleSnapshotCaptured(event)">
+
+        <!-- Action Controls -->
+        <div class="controls-card">
+            <!-- Button for Instant Snapshot (HTTP mode) -->
+            <button id="btn-snap-frame" class="btn-snap-frame" onclick="triggerSnapshotCapture()">
+                <span>📸</span>
+                <span id="snap-btn-text">SNAP &amp; BROADCAST FRAME</span>
+            </button>
+
+            <!-- Button for WebRTC Live Stream (Secure context or Chrome flag) -->
+            <button id="btn-broadcast" class="btn-broadcast" onclick="toggleBroadcast()" style="display: none;">
+                <span>🔴</span>
+                <span id="broadcast-btn-text">START LIVE BROADCAST</span>
+            </button>
+
+            <div class="secondary-controls">
+                <button class="btn-sub" onclick="triggerSnapshotCapture()">
+                    🔄 Retake Photo
+                </button>
+                <button class="btn-sub" onclick="openStudioLink()">
+                    🖥️ Open Studio
+                </button>
+                <button class="btn-sub" onclick="testConnectionPing()">
+                    📶 Test Hub Ping
+                </button>
+            </div>
+        </div>
+
+        <!-- Expandable Guide: How to enable 60 FPS WebRTC Video in Chrome -->
+        <div class="guide-accordion">
+            <div class="guide-header" onclick="toggleGuide('guide-webrtc')">
+                <span>🚀 Want Continuous 30 FPS Live Video? (1-Min Setup)</span>
+                <span id="guide-webrtc-arrow">▼</span>
+            </div>
+            <div id="guide-webrtc" class="guide-body">
+                <p>Mobile Chrome protects your camera on local Wi-Fi. You can grant permanent permission with 1 simple setting:</p>
+                <ol>
+                    <li>Open a new tab in Chrome on this phone and go to:
+                        <br><code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>
+                    </li>
+                    <li>In the text box, paste your PlantCare Hub origin:
+                        <br><code id="origin-url-code">http://...</code>
+                        <br><button class="copy-pill-btn" onclick="copyServerOrigin()">📋 Copy Origin URL</button>
+                    </li>
+                    <li>Change dropdown to <strong>Enabled</strong> and tap <strong>Relaunch</strong>.</li>
+                    <li>Refresh this page &mdash; continuous 60 FPS video streaming will activate automatically!</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- Expandable Guide: Android IP Webcam App -->
+        <div class="guide-accordion">
+            <div class="guide-header" onclick="toggleGuide('guide-ipwebcam')">
+                <span>📹 Prefer Using Free Android "IP Webcam" App?</span>
+                <span id="guide-ipwebcam-arrow">▼</span>
+            </div>
+            <div id="guide-ipwebcam" class="guide-body">
+                <p>For a permanent 24/7 dedicated surveillance camera:</p>
+                <ol>
+                    <li>Install the free <strong>IP Webcam</strong> app from Google Play Store on your phone.</li>
+                    <li>Open the app, scroll to the bottom, and tap <strong>Start server</strong>.</li>
+                    <li>The app will display an IP address on screen (e.g. <code>http://192.168.0.X:8080</code>).</li>
+                    <li>In PlantCare Pro Studio on your computer, click <strong>📱 Connect 4 Phones</strong> and paste that URL into the IP Webcam box!</li>
+                </ol>
+            </div>
+        </div>
+    </main>
+
+    <canvas id="capture-canvas" style="display: none;"></canvas>
+
+    <script>
+        const CAM_SPECS = {
+            1: { name: 'CAM 1: NW', corner: 'North-West', azimuth: 135 },
+            2: { name: 'CAM 2: NE', corner: 'North-East', azimuth: 45 },
+            3: { name: 'CAM 3: SW', corner: 'South-West', azimuth: 225 },
+            4: { name: 'CAM 4: SE', corner: 'South-East', azimuth: 315 }
+        };
+
+        let currentSlot = 1;
+        let isBroadcasting = false;
+        let broadcastInterval = null;
+        let mediaStream = null;
+        let facingMode = 'environment';
+        let wakeLock = null;
+        let frameCount = 0;
+        let lastFpsTime = performance.now();
+        let currentFps = 0;
+        let isSendingFrame = false;
+        let detectedServerIp = window.location.hostname || '127.0.0.1';
+        let detectedPort = window.location.port || '8002';
+        let hasWebRTC = false;
+
+        const videoEl = document.getElementById('camera-video');
+        const previewImg = document.getElementById('snapshot-preview-img');
+        const placeholderEl = document.getElementById('snapshot-placeholder');
+        const canvasEl = document.getElementById('capture-canvas');
+        const ctx = canvasEl.getContext('2d');
+
+        // Parse query parameter ?cam=1,2,3,4
+        const urlParams = new URLSearchParams(window.location.search);
+        const camParam = parseInt(urlParams.get('cam'));
+        if (camParam >= 1 && camParam <= 4) {
+            selectSlot(camParam);
+        }
+
+        // Fetch Server IP and network metadata
+        async function fetchServerNetworkInfo() {
+            try {
+                const res = await fetch('/api/cctv/server-ip');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.server_ip) {
+                        detectedServerIp = data.server_ip;
+                        const hubDisplay = document.getElementById('hub-ip-display');
+                        if (hubDisplay) hubDisplay.innerText = `${data.server_ip}:${window.location.port || '8002'}`;
+                        const originCode = document.getElementById('origin-url-code');
+                        if (originCode) originCode.innerText = `http://${data.server_ip}:${window.location.port || '8002'}`;
+                    }
+                }
+            } catch (e) {
+                console.warn("Could not fetch server-ip:", e);
+                const hubDisplay = document.getElementById('hub-ip-display');
+                if (hubDisplay) hubDisplay.innerText = window.location.host;
+            }
+        }
+
+        // Initialize Camera mode
+        async function initCameraMode() {
+            await fetchServerNetworkInfo();
+
+            // Check if WebRTC getUserMedia is available in this browser context
+            hasWebRTC = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+            if (hasWebRTC) {
+                // Secure context or Chrome flag enabled: try starting live video stream
+                try {
+                    await startCamera();
+                    document.getElementById('btn-broadcast').style.display = 'flex';
+                    document.getElementById('btn-snap-frame').style.display = 'none';
+                    document.getElementById('http-mode-banner').style.display = 'none';
+                    document.getElementById('node-mode-badge').innerText = '60 FPS WEBRTC LIVE';
+                    document.getElementById('node-mode-badge').style.color = '#10b981';
+                    videoEl.style.display = 'block';
+                    placeholderEl.style.display = 'none';
+                } catch (e) {
+                    console.warn("WebRTC start failed, falling back to Snapshot mode:", e);
+                    setupSnapshotMode();
+                }
+            } else {
+                // Mobile plain HTTP mode
+                setupSnapshotMode();
+            }
+        }
+
+        function setupSnapshotMode() {
+            document.getElementById('btn-broadcast').style.display = 'none';
+            document.getElementById('btn-snap-frame').style.display = 'flex';
+            document.getElementById('http-mode-banner').style.display = 'flex';
+            document.getElementById('node-mode-badge').innerText = 'HTTP SNAPSHOT MODE';
+            document.getElementById('node-mode-badge').style.color = '#38bdf8';
+            videoEl.style.display = 'none';
+            updateStatus('READY (TAP TO SNAP)', false);
+            document.getElementById('hud-fps-label').innerText = 'SNAPSHOT';
+            document.getElementById('hud-stream-state').innerText = 'TAP BLUE BUTTON';
+        }
+
+        // WebRTC Live Video Stream
+        async function startCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+            }
+
+            const constraints = {
+                video: {
+                    facingMode: { ideal: facingMode },
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                },
+                audio: false
+            };
+
+            mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            videoEl.srcObject = mediaStream;
+            await videoEl.play();
+
+            canvasEl.width = 480;
+            canvasEl.height = 360;
+
+            updateStatus('CAMERA READY', false);
+        }
+
+        // Trigger Native Mobile Camera Snapshot (Works 100% on any mobile browser over HTTP)
+        function triggerSnapshotCapture() {
+            const input = document.getElementById('phone-camera-file');
+            if (input) {
+                input.value = '';
+                input.click();
+            }
+        }
+
+        // Handle Image Captured from Native Phone Camera
+        async function handleSnapshotCaptured(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const btn = document.getElementById('btn-snap-frame');
+            const btnText = document.getElementById('snap-btn-text');
+            btn.classList.add('uploading');
+            btnText.innerText = 'PROCESSING & UPLOADING...';
+            updateStatus('UPLOADING FRAME...', true);
+
+            try {
+                // Read image file into an HTML Image object
+                const img = new Image();
+                const objectUrl = URL.createObjectURL(file);
+
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = objectUrl;
+                });
+
+                // Downsample to max 800x600 for rapid Wi-Fi upload speed
+                const maxDim = 800;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+
+                canvasEl.width = w;
+                canvasEl.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+
+                // Update viewfinder preview
+                placeholderEl.style.display = 'none';
+                previewImg.src = canvasEl.toDataURL('image/jpeg', 0.8);
+                previewImg.style.display = 'block';
+
+                // Export JPEG blob
+                const blob = await new Promise(res => canvasEl.toBlob(res, 'image/jpeg', 0.8));
+                URL.revokeObjectURL(objectUrl);
+
+                if (!blob) throw new Error("Could not compress frame");
+
+                // Transmit to CCTV Hub
+                const response = await fetch(`/api/cctv/upload-frame/${currentSlot}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'image/jpeg' },
+                    body: blob
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showSuccessToast(`✅ Frame sent to CAM ${currentSlot} (${Math.round(blob.size / 1024)} KB)`);
+                    updateStatus(`CAM ${currentSlot} UPDATED`, false);
+                    const pill = document.getElementById('status-pill');
+                    pill.classList.add('success');
+                    document.getElementById('hud-stream-state').innerText = `SENT: OK [${Math.round(blob.size / 1024)}KB]`;
+                    if (navigator.vibrate) navigator.vibrate([40, 40, 40]);
+                } else {
+                    throw new Error(`Server returned HTTP ${response.status}`);
+                }
+
+            } catch (err) {
+                console.error("Frame upload error:", err);
+                alert("Failed to upload camera frame: " + err.message);
+                updateStatus('UPLOAD FAILED', false);
+            } finally {
+                btn.classList.remove('uploading');
+                btnText.innerText = 'SNAP & BROADCAST FRAME';
+            }
+        }
+
+        function showSuccessToast(message) {
+            const toast = document.getElementById('upload-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = message;
+                toast.style.display = 'flex';
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 4000);
+            }
+        }
+
+        function selectSlot(slotId) {
+            currentSlot = slotId;
+            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById(`btn-slot-${slotId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const spec = CAM_SPECS[slotId];
+            document.getElementById('active-azimuth-tag').innerText = `${spec.azimuth}° AZIMUTH`;
+            document.getElementById('hud-cam-label').innerText = `${spec.name} [${spec.azimuth}°]`;
+        }
+
+        async function toggleBroadcast() {
+            if (!isBroadcasting) {
+                await startBroadcast();
+            } else {
+                stopBroadcast();
+            }
+        }
+
+        async function startBroadcast() {
+            if (!mediaStream) {
+                await startCamera();
+            }
+
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (e) {}
+
+            isBroadcasting = true;
+            document.getElementById('btn-broadcast').classList.add('stop');
+            document.getElementById('broadcast-btn-text').innerText = 'STOP BROADCAST';
+            updateStatus('LIVE TRANSMITTING', true);
+
+            broadcastInterval = setInterval(transmitFrame, 80);
+        }
+
+        function stopBroadcast() {
+            isBroadcasting = false;
+            if (broadcastInterval) {
+                clearInterval(broadcastInterval);
+                broadcastInterval = null;
+            }
+            if (wakeLock) {
+                wakeLock.release().catch(() => {});
+                wakeLock = null;
+            }
+
+            document.getElementById('btn-broadcast').classList.remove('stop');
+            document.getElementById('broadcast-btn-text').innerText = 'START LIVE BROADCAST';
+            updateStatus('STANDBY', false);
+            document.getElementById('hud-stream-state').innerText = 'LINK: PAUSED';
+        }
+
+        async function transmitFrame() {
+            if (!isBroadcasting || isSendingFrame || !videoEl.videoWidth) return;
+            isSendingFrame = true;
+
+            try {
+                ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+                canvasEl.toBlob(async (blob) => {
+                    if (!blob) {
+                        isSendingFrame = false;
+                        return;
+                    }
+
+                    try {
+                        const res = await fetch(`/api/cctv/upload-frame/${currentSlot}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'image/jpeg' },
+                            body: blob
+                        });
+
+                        if (res.ok) {
+                            frameCount++;
+                            const now = performance.now();
+                            if (now - lastFpsTime >= 1000) {
+                                currentFps = ((frameCount * 1000) / (now - lastFpsTime)).toFixed(1);
+                                frameCount = 0;
+                                lastFpsTime = now;
+                                document.getElementById('hud-fps-label').innerText = `${currentFps} FPS`;
+                                document.getElementById('hud-stream-state').innerText = `LIVE // ${currentFps} FPS`;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Frame upload drop:", e);
+                    } finally {
+                        isSendingFrame = false;
+                    }
+                }, 'image/jpeg', 0.65);
+
+            } catch (e) {
+                isSendingFrame = false;
+            }
+        }
+
+        async function testConnectionPing() {
+            try {
+                const t0 = performance.now();
+                const res = await fetch('/api/cctv/status');
+                const t1 = performance.now();
+                if (res.ok) {
+                    const ms = Math.round(t1 - t0);
+                    showSuccessToast(`📶 Hub Connected! Ping latency: ${ms}ms`);
+                } else {
+                    alert(`Hub responded with HTTP status ${res.status}`);
+                }
+            } catch (e) {
+                alert("Cannot reach Hub: " + e.message + "\nEnsure your phone is connected to the same Wi-Fi!");
+            }
+        }
+
+        function copyServerOrigin() {
+            const url = `http://${detectedServerIp}:${window.location.port || '8002'}`;
+            navigator.clipboard.writeText(url).then(() => {
+                alert(`Copied origin URL:\n${url}\n\nPaste this into chrome://flags on your phone!`);
+            }).catch(() => {
+                prompt("Copy this URL:", url);
+            });
+        }
+
+        function toggleGuide(id) {
+            const el = document.getElementById(id);
+            const arrow = document.getElementById(id + '-arrow');
+            if (el.style.display === 'block') {
+                el.style.display = 'none';
+                if (arrow) arrow.innerText = '▼';
+            } else {
+                el.style.display = 'block';
+                if (arrow) arrow.innerText = '▲';
+            }
+        }
+
+        function openStudioLink() {
+            window.location.href = '/growth';
+        }
+
+        function updateStatus(text, isLive) {
+            const pill = document.getElementById('status-pill');
+            const statusText = document.getElementById('status-text');
+            statusText.innerText = text;
+            pill.classList.remove('success');
+            if (isLive) {
+                pill.classList.add('live');
+            } else {
+                pill.classList.remove('live');
+            }
+        }
+
+        // Live Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('hud-time').innerText = now.toTimeString().split(' ')[0];
+        }, 1000);
+
+        // Auto start on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            initCameraMode();
+        });
+    </script>
+</body>
+</html>

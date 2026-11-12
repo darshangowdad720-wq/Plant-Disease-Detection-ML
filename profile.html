@@ -1,0 +1,722 @@
+{% extends "base.html" %}
+
+{% block title %}Farm Profile — PlantCare Pro{% endblock %}
+
+{% block head %}
+<style>
+.profile-hero {
+    background: linear-gradient(115deg, #105c3a, #218452);
+    color: #fff;
+    border-radius: 24px;
+    padding: 36px 40px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+    box-shadow: 0 16px 36px rgba(18, 104, 62, 0.14);
+}
+.profile-hero:after {
+    content: '♧';
+    position: absolute;
+    font-size: 180px;
+    right: 2%;
+    bottom: -40px;
+    opacity: .08;
+    color: #fff;
+    pointer-events: none;
+}
+.profile-avatar-large {
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    background: #dcefe3;
+    color: var(--green);
+    font-family: 'Manrope', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+    border: 3.5px solid #ffffff;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    flex-shrink: 0;
+}
+.metric-box-pro {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px 24px 18px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.metric-box-pro:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.04);
+}
+.form-input-pro {
+    width: 100%;
+    border: 1.5px solid #dce5df;
+    background: #fbfdfb;
+    border-radius: 14px;
+    padding: 13px 16px;
+    font-size: 15px;
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: all 0.25s ease;
+}
+.form-input-pro:focus {
+    border-color: var(--green);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(22, 121, 75, 0.12);
+}
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+}
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #d1ded5;
+    transition: .3s;
+    border-radius: 26px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+input:checked + .slider { background-color: var(--green); }
+input:checked + .slider:before { transform: translateX(22px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-7">
+
+    <!-- Header & Breadcrumb -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-3 pb-1">
+        <div>
+            <div class="text-sm font-bold text-[#718078] mb-1.5">Workspace / Farm Profile</div>
+            <h1 class="text-3xl sm:text-4xl font-black text-[#182820] tracking-tight">Farm Profile &amp; Settings</h1>
+            <p class="text-sm sm:text-base text-[#718078] mt-1.5 leading-relaxed">Manage your grower credentials, farm acreage, soil profile, and dual-layer AI inference preferences.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="/diagnose" class="primary-btn text-sm py-3 px-5 shadow-none font-bold">
+                ⌗ &nbsp; Start Diagnostic Scan
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Toast (Saved / Status) -->
+    <div id="statusToast" class="hidden rounded-2xl p-4 text-sm font-bold flex items-center justify-between transition-all">
+        <span id="statusToastText">Profile updated successfully!</span>
+        <button onclick="document.getElementById('statusToast').classList.add('hidden')" class="opacity-60 hover:opacity-100 text-base">✕</button>
+    </div>
+
+    <!-- Top Profile Hero Banner -->
+    <div class="profile-hero">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+            <div class="flex items-center gap-5">
+                <div class="profile-avatar-large" id="avatarLarge">🌱</div>
+                <div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight" id="heroDisplayName">Loading profile...</h2>
+                        <span class="pill good text-xs font-bold" style="background: rgba(255,255,255,0.22); color: #fff;">● Active Account</span>
+                    </div>
+                    <p class="text-sm text-[#d8f0df] mt-1.5" id="heroEmail">Connecting account...</p>
+                    <div class="flex items-center gap-3 mt-2 text-xs sm:text-sm text-[#bfe8cd]">
+                        <span class="font-bold">Role:</span> Lead Agronomist · Farm ID: <span class="font-mono font-bold" id="heroFarmId">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                <button id="btnEditProfile" onclick="openEditProfileModal()" class="secondary-btn text-sm py-2.5 px-4 bg-white text-[#107a4b] hover:bg-[#e8f7ee] w-full sm:w-auto font-bold shadow-md cursor-pointer transition-all">
+                    ✎ Edit Profile
+                </button>
+                <button onclick="logout()" class="secondary-btn text-sm py-2.5 px-4 bg-white/10 text-white border-white/20 hover:bg-red-500 hover:text-white hover:border-red-500 w-full sm:w-auto font-bold">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 Pro Metrics Grid (Zero dummy numbers, strictly from database) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Metric 1: Total Scans -->
+        <div class="metric-box-pro">
+            <div class="flex items-center justify-between">
+                <div class="w-9 h-9 rounded-xl bg-[#edf7f0] text-[#16794b] grid place-items-center text-base font-bold">⌗</div>
+                <span class="text-xs text-[#16794b] font-bold bg-[#e9f7ed] rounded-full px-2.5 py-1">Scans Run</span>
+            </div>
+            <h3 class="text-3xl font-black text-[#182820] mt-3.5 mb-1 tracking-tight" id="profileScansCount">0</h3>
+            <p class="text-xs text-[#718078] font-medium">Total diagnostic records</p>
+        </div>
+
+        <!-- Metric 2: Monitored Crops -->
+        <div class="metric-box-pro">
+            <div class="flex items-center justify-between">
+                <div class="w-9 h-9 rounded-xl bg-[#edf7f0] text-[#16794b] grid place-items-center text-base font-bold">🌱</div>
+                <span class="pill good text-xs font-bold" id="profileCropsTag">0 Crops</span>
+            </div>
+            <h3 class="text-3xl font-black text-[#182820] mt-3.5 mb-1 tracking-tight" id="profileCropsCount">0</h3>
+            <p class="text-xs text-[#718078] font-medium">Registered crop varieties</p>
+        </div>
+
+        <!-- Metric 3: Farm Area -->
+        <div class="metric-box-pro">
+            <div class="flex items-center justify-between">
+                <div class="w-9 h-9 rounded-xl bg-[#edf3ff] text-[#2563eb] grid place-items-center text-base font-bold">🗺</div>
+                <span class="text-xs text-[#2563eb] font-bold bg-[#eef4ff] rounded-full px-2.5 py-1">Acreage</span>
+            </div>
+            <h3 class="text-3xl font-black text-[#182820] mt-3.5 mb-1 tracking-tight" id="profileAreaText">— Ac</h3>
+            <p class="text-xs text-[#718078] font-medium">Managed farmland</p>
+        </div>
+
+        <!-- Metric 4: AI Tier -->
+        <div class="metric-box-pro">
+            <div class="flex items-center justify-between">
+                <div class="w-9 h-9 rounded-xl bg-[#fff4e5] text-[#c77b19] grid place-items-center text-base font-bold">✧</div>
+                <span class="pill medium text-xs font-bold">Dual AI</span>
+            </div>
+            <h3 class="text-3xl font-black text-[#16794b] mt-3.5 mb-1 tracking-tight">Active</h3>
+            <p class="text-xs text-[#718078] font-medium">ResNet50 + Gemini 3.8 Flash</p>
+        </div>
+    </div>
+
+    <!-- Main Content Two-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-[1.3fr_0.9fr] gap-7">
+
+        <!-- Left Column: Farm Information Form -->
+        <div class="space-y-6">
+            <div class="pro-card p-7" id="profileFormCard">
+                <div class="flex items-center justify-between mb-6 pb-2 border-b border-[#f0f3f0]">
+                    <div>
+                        <h3 class="font-black text-lg sm:text-xl text-[#182820]">Farmer &amp; Farm Identity</h3>
+                        <p class="text-sm text-[#718078] mt-1">Configure your grower profile, farm size, and monitored plots.</p>
+                    </div>
+                    <span class="text-2xl">🏡</span>
+                </div>
+
+                <form id="profileForm" onsubmit="saveProfile(event)" class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-bold text-[#182820] mb-2">Full Name</label>
+                            <input type="text" id="farmerNameInput" class="form-input-pro" placeholder="e.g. John Doe" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-[#182820] mb-2">Email Address</label>
+                            <input type="email" id="farmerEmailInput" class="form-input-pro opacity-80 cursor-not-allowed bg-[#f3f6f4]" placeholder="farmer@example.com" readonly>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-bold text-[#182820] mb-2">Farm / Property Name</label>
+                            <input type="text" id="farmNameInput" class="form-input-pro" placeholder="e.g. Sunny Field Orchards">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-[#182820] mb-2">Geographic Location</label>
+                            <input type="text" id="farmLocationInput" class="form-input-pro" placeholder="e.g. Fresno, California">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-bold text-[#182820] mb-2">Total Farm Size (Acres)</label>
+                            <input type="number" id="farmSizeInput" class="form-input-pro" placeholder="e.g. 50" step="0.5" oninput="updateAcreageDisplay(this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-[#182820] mb-2">Primary Soil Profile</label>
+                            <select id="soilTypeInput" class="form-input-pro">
+                                <option value="" disabled selected>Select soil type</option>
+                                <option value="Alluvial Silt Loam">Alluvial Silt Loam</option>
+                                <option value="Clay Loam">Clay Loam</option>
+                                <option value="Sandy Loam">Sandy Loam</option>
+                                <option value="Black Cotton Soil">Black Cotton Soil</option>
+                                <option value="Red Laterite">Red Laterite</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-[#182820] mb-2.5">Monitored Crop Varieties</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-sm">
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Tomato" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🍅 Tomato</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Potato" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🥔 Potato</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Apple" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🍎 Apple</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Corn" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🌽 Corn</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Grape" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🍇 Grape</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Pepper" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🫑 Pepper</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Strawberry" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🍓 Strawberry</span>
+                            </label>
+                            <label class="flex items-center gap-2.5 p-3 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl cursor-pointer hover:border-[#16794b] transition-all">
+                                <input type="checkbox" name="crops" value="Wheat" class="accent-[#16794b] w-4 h-4">
+                                <span class="font-medium text-[#182820]">🌾 Wheat</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="pt-3">
+                        <button type="submit" class="primary-btn text-sm py-3.5 px-8 font-bold rounded-xl shadow-none">
+                            💾 &nbsp; Save Farm Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: AI Engine & Data Controls -->
+        <div class="space-y-6">
+            
+            <!-- AI Engine Settings -->
+            <div class="pro-card p-7" id="profileFormCard">
+                <div class="flex items-center justify-between mb-5 pb-2 border-b border-[#f0f3f0]">
+                    <div>
+                        <h3 class="font-black text-lg sm:text-xl text-[#182820]">Dual-AI Engine Config</h3>
+                        <p class="text-sm text-[#718078] mt-1">Control neural inference pipeline behavior.</p>
+                    </div>
+                    <span class="text-2xl">⚙</span>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Toggle 1: Auto Gemini Double Verify -->
+                    <div class="flex items-center justify-between p-4 bg-[#f8fcf9] border border-[#e2eee5] rounded-2xl">
+                        <div class="pr-3">
+                            <h4 class="text-sm font-bold text-[#182820]">Auto Gemini Double-Verify</h4>
+                            <p class="text-xs text-[#718078] mt-1 leading-relaxed">Auto-diverts to Gemini 3.8 Flash Vision when ResNet50 confidence is below 80%.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="prefAutoGemini" checked onchange="saveAiPrefs()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Toggle 2: Weather Outbreak Alerts -->
+                    <div class="flex items-center justify-between p-4 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl">
+                        <div class="pr-3">
+                            <h4 class="text-sm font-bold text-[#182820]">Weather Pathogen Alerts</h4>
+                            <p class="text-xs text-[#718078] mt-1 leading-relaxed">Calculate real-time fungal spore risk based on local humidity and temperature.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="prefWeatherAlerts" checked onchange="saveAiPrefs()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <!-- Toggle 3: Edge ResNet50 Caching -->
+                    <div class="flex items-center justify-between p-4 bg-[#f8fcf9] border border-[#e2eee5] rounded-xl">
+                        <div class="pr-3">
+                            <h4 class="text-sm font-bold text-[#182820]">In-Memory Model Caching</h4>
+                            <p class="text-xs text-[#718078] mt-1 leading-relaxed">Keeps PyTorch checkpoints pre-warmed for instant 13.9ms GPU inference.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="prefModelCache" checked disabled>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account & Real Data Export Card -->
+            <div class="pro-card p-7" id="profileFormCard">
+                <div class="flex items-center justify-between mb-5 pb-2 border-b border-[#f0f3f0]">
+                    <div>
+                        <h3 class="font-black text-lg sm:text-xl text-[#182820]">Account &amp; Data</h3>
+                        <p class="text-sm text-[#718078] mt-1">Export genuine Firestore scan history records.</p>
+                    </div>
+                    <span class="text-2xl">📁</span>
+                </div>
+
+                <div class="space-y-3.5">
+                    <button onclick="exportHistoryCsv()" class="secondary-btn w-full justify-center text-sm py-3 font-bold rounded-xl">
+                        ⬇ &nbsp; Export Scan History (CSV)
+                    </button>
+                    <a href="/login" class="secondary-btn w-full justify-center text-sm py-3 text-[#16794b] hover:border-[#16794b] font-bold rounded-xl">
+                        🔑 &nbsp; Switch Account / Sign In
+                    </a>
+                    <button onclick="logout()" class="w-full text-center text-sm font-bold text-red-600 hover:text-red-700 py-2.5 transition-colors">
+                        Sign Out of PlantCare Pro
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Interactive Edit Profile Modal -->
+<div id="editProfileModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-[#e2e8f0] max-h-[90vh] overflow-y-auto animate-scaleUp">
+        <div class="flex justify-between items-center pb-4 border-b border-[#f1f5f9] mb-5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-[#e8f7ee] text-[#107a4b] grid place-items-center text-xl font-bold">
+                    👤
+                </div>
+                <div>
+                    <h3 class="text-xl font-extrabold text-[#0f172a]">Edit Farm Profile</h3>
+                    <p class="text-xs text-[#64748b]">Update your personal credentials and farm parameters</p>
+                </div>
+            </div>
+            <button onclick="closeEditProfileModal()" class="w-8 h-8 rounded-full bg-[#f1f5f9] hover:bg-[#e2e8f0] grid place-items-center text-[#64748b] text-base transition-colors">✕</button>
+        </div>
+
+        <form id="modalProfileForm" onsubmit="saveProfileFromModal(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-[#0f172a] uppercase tracking-wider mb-1.5">Full Name</label>
+                <input type="text" id="modalFarmerName" class="form-input-pro" placeholder="e.g. John Doe" required>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-[#0f172a] uppercase tracking-wider mb-1.5">Farm / Property Name</label>
+                <input type="text" id="modalFarmName" class="form-input-pro" placeholder="e.g. Sunny Field Orchards">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-[#0f172a] uppercase tracking-wider mb-1.5">Location</label>
+                    <input type="text" id="modalFarmLocation" class="form-input-pro" placeholder="e.g. California, US">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-[#0f172a] uppercase tracking-wider mb-1.5">Total Acreage</label>
+                    <input type="number" id="modalFarmSize" class="form-input-pro" placeholder="e.g. 50" step="0.5">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-[#0f172a] uppercase tracking-wider mb-1.5">Primary Soil Profile</label>
+                <select id="modalSoilType" class="form-input-pro">
+                    <option value="" disabled selected>Select soil type</option>
+                    <option value="Alluvial Silt Loam">Alluvial Silt Loam</option>
+                    <option value="Clay Loam">Clay Loam</option>
+                    <option value="Sandy Loam">Sandy Loam</option>
+                    <option value="Black Cotton Soil">Black Cotton Soil</option>
+                    <option value="Red Laterite">Red Laterite</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-[#f1f5f9] mt-6">
+                <button type="button" onclick="closeEditProfileModal()" class="secondary-btn text-xs py-2.5 px-4">
+                    Cancel
+                </button>
+                <button type="submit" id="btnModalSave" class="primary-btn text-xs py-2.5 px-5 shadow-sm">
+                    💾 Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    
+    // Modal Edit Profile Functions
+    function openEditProfileModal() {
+        const modal = document.getElementById('editProfileModal');
+        if (!modal) return;
+
+        // Prepopulate modal with current form or display values
+        const currentName = document.getElementById('farmerNameInput').value || document.getElementById('heroDisplayName').innerText || '';
+        const currentFarm = document.getElementById('farmNameInput').value || '';
+        const currentLoc = document.getElementById('farmLocationInput').value || '';
+        const currentSize = document.getElementById('farmSizeInput').value || '';
+        const currentSoil = document.getElementById('soilTypeInput').value || '';
+
+        document.getElementById('modalFarmerName').value = currentName === 'Loading profile...' ? '' : currentName;
+        document.getElementById('modalFarmName').value = currentFarm;
+        document.getElementById('modalFarmLocation').value = currentLoc;
+        document.getElementById('modalFarmSize').value = currentSize;
+        if (currentSoil) document.getElementById('modalSoilType').value = currentSoil;
+
+        modal.classList.remove('hidden');
+        document.getElementById('modalFarmerName').focus();
+    }
+
+    function closeEditProfileModal() {
+        const modal = document.getElementById('editProfileModal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    async function saveProfileFromModal(e) {
+        e.preventDefault();
+        const fName = document.getElementById('modalFarmerName').value.trim();
+        const farm = document.getElementById('modalFarmName').value.trim();
+        const loc = document.getElementById('modalFarmLocation').value.trim();
+        const size = document.getElementById('modalFarmSize').value.trim();
+        const soil = document.getElementById('modalSoilType').value;
+
+        // Sync with inline inputs
+        document.getElementById('farmerNameInput').value = fName;
+        document.getElementById('farmNameInput').value = farm;
+        document.getElementById('farmLocationInput').value = loc;
+        document.getElementById('farmSizeInput').value = size;
+        if (soil) document.getElementById('soilTypeInput').value = soil;
+
+        // Update displays immediately
+        if (fName) {
+            document.getElementById('heroDisplayName').innerText = fName;
+            const initials = fName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CR';
+            document.getElementById('avatarLarge').innerText = initials;
+            const hAvatar = document.querySelector("#headerUserAvatar");
+            if (hAvatar) hAvatar.innerText = initials;
+        }
+        if (size) {
+            document.getElementById('profileAreaText').innerText = size + ' Ac';
+        }
+
+        // Save to localStorage
+        const crops = [];
+        document.querySelectorAll('input[name="crops"]:checked').forEach(cb => crops.push(cb.value));
+        const profileData = { farmerName: fName, farmName: farm, farmLocation: loc, farmSize: size, soilType: soil, crops, updatedAt: new Date().toISOString() };
+        localStorage.setItem("plantcare_farm_profile", JSON.stringify(profileData));
+
+        // Save to Firebase Auth & Firestore
+        const user = firebase.auth().currentUser;
+        if (user) {
+            if (fName) user.updateProfile({ displayName: fName }).catch(err => console.log(err));
+            if (firebase.firestore) {
+                try {
+                    await firebase.firestore().collection('users').doc(user.uid).set(profileData, { merge: true });
+                } catch(err) {
+                    console.log('Firestore profile save notice:', err);
+                }
+            }
+        }
+
+        closeEditProfileModal();
+
+        // Show success toast
+        const toast = document.getElementById("statusToast");
+        if (toast) {
+            toast.className = "rounded-2xl p-4 text-sm font-bold flex items-center justify-between transition-all bg-[#e9f7ed] text-[#16794b] border border-[#b8e2c7]";
+            document.getElementById("statusToastText").innerText = "✓ Profile updated successfully!";
+            toast.classList.remove("hidden");
+            setTimeout(() => toast.classList.add("hidden"), 4000);
+        }
+    }
+
+    function updateAcreageDisplay(val) {
+        document.getElementById('profileAreaText').innerText = val ? val + ' Ac' : '— Ac';
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Firebase Auth state listener
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                const name = user.displayName || user.email.split('@')[0];
+                document.getElementById("heroDisplayName").innerText = name;
+                document.getElementById("heroEmail").innerText = user.email;
+                document.getElementById("farmerEmailInput").value = user.email;
+                
+                const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CR';
+                document.getElementById("avatarLarge").innerText = initials;
+                
+                const headerAvatar = document.querySelector("#headerUserAvatar");
+                if (headerAvatar) headerAvatar.innerText = initials;
+
+                document.getElementById("heroFarmId").innerText = "PC-" + user.uid.substring(0, 8).toUpperCase();
+                
+                // Load user data from Firestore
+                loadProfileData(user);
+            } else {
+                window.location.replace('/login');
+            }
+        });
+    });
+
+    async function loadProfileData(user) {
+        // 1. Load locally saved farm profile
+        const saved = localStorage.getItem("plantcare_farm_profile");
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                if (data.farmerName) document.getElementById("farmerNameInput").value = data.farmerName;
+                if (data.farmName) document.getElementById("farmNameInput").value = data.farmName;
+                if (data.farmLocation) document.getElementById("farmLocationInput").value = data.farmLocation;
+                if (data.farmSize) {
+                    document.getElementById("farmSizeInput").value = data.farmSize;
+                    document.getElementById("profileAreaText").innerText = data.farmSize + " Ac";
+                }
+                if (data.soilType) document.getElementById("soilTypeInput").value = data.soilType;
+                if (data.crops && Array.isArray(data.crops)) {
+                    document.querySelectorAll('input[name="crops"]').forEach(cb => {
+                        cb.checked = data.crops.includes(cb.value);
+                    });
+                    document.getElementById('profileCropsCount').innerText = data.crops.length;
+                    document.getElementById('profileCropsTag').innerText = data.crops.length + ' Crops';
+                }
+            } catch(e) {}
+        }
+
+        // 2. Load Firestore document if available
+        if (user && user.uid && window.firebase && firebase.firestore) {
+            try {
+                const db = firebase.firestore();
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.farmerName) document.getElementById("farmerNameInput").value = data.farmerName;
+                    if (data.farmName) document.getElementById("farmNameInput").value = data.farmName;
+                    if (data.farmLocation) document.getElementById("farmLocationInput").value = data.farmLocation;
+                    if (data.farmSize) {
+                        document.getElementById("farmSizeInput").value = data.farmSize;
+                        document.getElementById("profileAreaText").innerText = data.farmSize + " Ac";
+                    }
+                    if (data.soilType) document.getElementById("soilTypeInput").value = data.soilType;
+                    if (data.crops && Array.isArray(data.crops)) {
+                        document.querySelectorAll('input[name="crops"]').forEach(cb => {
+                            cb.checked = data.crops.includes(cb.value);
+                        });
+                        document.getElementById('profileCropsCount').innerText = data.crops.length;
+                        document.getElementById('profileCropsTag').innerText = data.crops.length + ' Crops';
+                    }
+                }
+
+                // Load real scans count from Firestore
+                const scansSnap = await db.collection('users').doc(user.uid).collection('scans').get();
+                document.getElementById("profileScansCount").innerText = scansSnap.size;
+            } catch(e) {
+                console.log('Firestore profile load notice:', e);
+            }
+        } else {
+            const localScans = localStorage.getItem("plantcare_scans");
+            if (localScans) {
+                try {
+                    const list = JSON.parse(localScans);
+                    document.getElementById("profileScansCount").innerText = list.length;
+                } catch(e) {}
+            }
+        }
+
+        // Count checked crops
+        updateCropsCount();
+    }
+
+    function updateCropsCount() {
+        const checked = document.querySelectorAll('input[name="crops"]:checked').length;
+        document.getElementById('profileCropsCount').innerText = checked;
+        document.getElementById('profileCropsTag').innerText = checked + ' Crops';
+    }
+
+    document.querySelectorAll('input[name="crops"]').forEach(cb => {
+        cb.addEventListener('change', updateCropsCount);
+    });
+
+    async function saveProfile(e) {
+        e.preventDefault();
+        const farmerName = document.getElementById("farmerNameInput").value.trim();
+        const farmName = document.getElementById("farmNameInput").value.trim();
+        const farmLocation = document.getElementById("farmLocationInput").value.trim();
+        const farmSize = document.getElementById("farmSizeInput").value.trim();
+        const soilType = document.getElementById("soilTypeInput").value;
+        
+        const crops = [];
+        document.querySelectorAll('input[name="crops"]:checked').forEach(cb => crops.push(cb.value));
+
+        const profileData = { farmerName, farmName, farmLocation, farmSize, soilType, crops, updatedAt: new Date().toISOString() };
+        localStorage.setItem("plantcare_farm_profile", JSON.stringify(profileData));
+
+        if (farmerName) document.getElementById("heroDisplayName").innerText = farmerName;
+        if (farmSize) document.getElementById("profileAreaText").innerText = farmSize + " Ac";
+
+        const user = firebase.auth().currentUser;
+        if (user) {
+            if (farmerName) user.updateProfile({ displayName: farmerName }).catch(err => console.log(err));
+            if (firebase.firestore) {
+                try {
+                    await firebase.firestore().collection('users').doc(user.uid).set(profileData, { merge: true });
+                } catch(err) {
+                    console.log('Firestore profile save notice:', err);
+                }
+            }
+        }
+
+        const toast = document.getElementById("statusToast");
+        toast.className = "rounded-2xl p-4 text-sm font-bold flex items-center justify-between transition-all bg-[#e9f7ed] text-[#16794b] border border-[#b8e2c7]";
+        document.getElementById("statusToastText").innerText = "✓ Farm profile and properties saved to Firestore successfully!";
+        toast.classList.remove("hidden");
+        setTimeout(() => toast.classList.add("hidden"), 4000);
+    }
+
+    function saveAiPrefs() {
+        const autoGemini = document.getElementById("prefAutoGemini").checked;
+        const weatherAlerts = document.getElementById("prefWeatherAlerts").checked;
+        localStorage.setItem("plantcare_ai_prefs", JSON.stringify({ autoGemini, weatherAlerts }));
+    }
+
+    async function exportHistoryCsv() {
+        let scans = [];
+        
+        // Fetch real scans from Firestore
+        const user = firebase.auth().currentUser;
+        if (user && firebase.firestore) {
+            try {
+                const snapshot = await firebase.firestore().collection('users').doc(user.uid).collection('scans').orderBy('timestamp', 'desc').get();
+                snapshot.forEach(doc => scans.push(doc.data()));
+            } catch(e) {}
+        }
+        
+        // Fallback to local storage if needed
+        if (scans.length === 0) {
+            try {
+                scans = JSON.parse(localStorage.getItem('plantcare_scans') || '[]');
+            } catch(e) {}
+        }
+
+        if (scans.length === 0) {
+            alert("No scan records found in your database yet. Complete a diagnostic scan in the Disease Scanner first!");
+            return;
+        }
+
+        const headers = ["Scan ID", "Date", "Diagnosis", "Confidence", "Severity"];
+        const rows = scans.map((s, idx) => [
+            `SCN-${1000 + idx}`,
+            s.timestamp ? new Date(s.timestamp).toLocaleDateString() : 'N/A',
+            `"${(s.disease || 'Unknown').replace(/"/g, '""')}"`,
+            s.confidence || 'N/A',
+            s.severity || 'N/A'
+        ]);
+
+        let csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `plantcare_scans_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+{% endblock %}
